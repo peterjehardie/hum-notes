@@ -1,0 +1,11 @@
+Orchestral samples in this folder come from VS Chamber Orchestra: Community Edition (VSCO 2 CE)
+by Versilian Studios: recorded by Sam Gossner and Simon Dalzell, sample cutting by Elan Hickler / Soundemote.
+Upright piano sampled by Simon Dalzell (Ivy Audio).
+
+Source:  https://github.com/sgossner/VSCO-2-CE  (branch master, fetched 2026-10-22)
+Licence: Creative Commons Zero v1.0 Universal (CC0 1.0), per the repository LICENSE file
+         https://creativecommons.org/publicdomain/zero/1.0/
+
+Changes: a subset of notes was trimmed, level-matched, given baked crossfade loops (sustained
+instruments) and re-encoded as OGG Vorbis by tools/fetch-samples.py. Credit to the original
+authors and Versilian Studios is encouraged by the library, though not required.

@@ -1,0 +1,1722 @@
+{
+ "violins": {
+  "family": "strings",
+  "articulation": "section sustain, vibrato",
+  "range": [
+   55,
+   89
+  ],
+  "attack": 0.06,
+  "release": 0.35,
+  "gain": 1.025,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 55,
+    "file": "violins/55_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.29939,
+    "loopEnd": 5.30009
+   },
+   {
+    "midi": 55,
+    "file": "violins/55_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 1.07961,
+    "loopEnd": 4.08027
+   },
+   {
+    "midi": 57,
+    "file": "violins/57_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.38027,
+    "loopEnd": 5.37973
+   },
+   {
+    "midi": 57,
+    "file": "violins/57_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 1.15998,
+    "loopEnd": 4.15952
+   },
+   {
+    "midi": 59,
+    "file": "violins/59_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.22009,
+    "loopEnd": 5.21968
+   },
+   {
+    "midi": 59,
+    "file": "violins/59_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.94048,
+    "loopEnd": 3.94034
+   },
+   {
+    "midi": 62,
+    "file": "violins/62_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 3.44068,
+    "loopEnd": 6.43968
+   },
+   {
+    "midi": 62,
+    "file": "violins/62_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.60036,
+    "loopEnd": 3.59941
+   },
+   {
+    "midi": 66,
+    "file": "violins/66_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.70045,
+    "loopEnd": 4.70048
+   },
+   {
+    "midi": 66,
+    "file": "violins/66_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 1.07986,
+    "loopEnd": 4.08009
+   },
+   {
+    "midi": 69,
+    "file": "violins/69_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.34009,
+    "loopEnd": 5.33925
+   },
+   {
+    "midi": 69,
+    "file": "violins/69_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.97964,
+    "loopEnd": 3.98052
+   },
+   {
+    "midi": 72,
+    "file": "violins/72_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.61973,
+    "loopEnd": 5.61927
+   },
+   {
+    "midi": 72,
+    "file": "violins/72_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.49971,
+    "loopEnd": 3.5
+   },
+   {
+    "midi": 76,
+    "file": "violins/76_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 3.67991,
+    "loopEnd": 6.68018
+   },
+   {
+    "midi": 76,
+    "file": "violins/76_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.44002,
+    "loopEnd": 3.44009
+   },
+   {
+    "midi": 79,
+    "file": "violins/79_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 4.53998,
+    "loopEnd": 7.54009
+   },
+   {
+    "midi": 79,
+    "file": "violins/79_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 1.38002,
+    "loopEnd": 4.38023
+   },
+   {
+    "midi": 83,
+    "file": "violins/83_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.47998,
+    "loopEnd": 5.48014
+   },
+   {
+    "midi": 83,
+    "file": "violins/83_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 3.96025,
+    "loopEnd": 6.96007
+   },
+   {
+    "midi": 86,
+    "file": "violins/86_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 4.47986,
+    "loopEnd": 7.47989
+   },
+   {
+    "midi": 86,
+    "file": "violins/86_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.71975,
+    "loopEnd": 3.71991
+   }
+  ]
+ },
+ "violas": {
+  "family": "strings",
+  "articulation": "section sustain, vibrato",
+  "range": [
+   48,
+   81
+  ],
+  "attack": 0.06,
+  "release": 0.35,
+  "gain": 0.569,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 48,
+    "file": "violas/48_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.83989,
+    "loopEnd": 3.83991
+   },
+   {
+    "midi": 48,
+    "file": "violas/48_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.61925,
+    "loopEnd": 3.61977
+   },
+   {
+    "midi": 50,
+    "file": "violas/50_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.47914,
+    "loopEnd": 5.38964
+   },
+   {
+    "midi": 50,
+    "file": "violas/50_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.36102,
+    "loopEnd": 3.35993
+   },
+   {
+    "midi": 52,
+    "file": "violas/52_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.52041,
+    "loopEnd": 4.51998
+   },
+   {
+    "midi": 52,
+    "file": "violas/52_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.3793,
+    "loopEnd": 3.37971
+   },
+   {
+    "midi": 55,
+    "file": "violas/55_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.89957,
+    "loopEnd": 4.89986
+   },
+   {
+    "midi": 55,
+    "file": "violas/55_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.34014,
+    "loopEnd": 3.3398
+   },
+   {
+    "midi": 59,
+    "file": "violas/59_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.62018,
+    "loopEnd": 4.61909
+   },
+   {
+    "midi": 59,
+    "file": "violas/59_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.27934,
+    "loopEnd": 3.28061
+   },
+   {
+    "midi": 62,
+    "file": "violas/62_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.68034,
+    "loopEnd": 4.67995
+   },
+   {
+    "midi": 62,
+    "file": "violas/62_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.43961,
+    "loopEnd": 3.43991
+   },
+   {
+    "midi": 65,
+    "file": "violas/65_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.65991,
+    "loopEnd": 4.66027
+   },
+   {
+    "midi": 65,
+    "file": "violas/65_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.32039,
+    "loopEnd": 3.31977
+   },
+   {
+    "midi": 69,
+    "file": "violas/69_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.77966,
+    "loopEnd": 3.78007
+   },
+   {
+    "midi": 69,
+    "file": "violas/69_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.37952,
+    "loopEnd": 3.37952
+   },
+   {
+    "midi": 72,
+    "file": "violas/72_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.44005,
+    "loopEnd": 4.4407
+   },
+   {
+    "midi": 72,
+    "file": "violas/72_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.31995,
+    "loopEnd": 3.3198
+   },
+   {
+    "midi": 76,
+    "file": "violas/76_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.34014,
+    "loopEnd": 4.33971
+   },
+   {
+    "midi": 76,
+    "file": "violas/76_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.38,
+    "loopEnd": 3.37998
+   },
+   {
+    "midi": 79,
+    "file": "violas/79_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.65998,
+    "loopEnd": 4.65989
+   },
+   {
+    "midi": 79,
+    "file": "violas/79_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.31982,
+    "loopEnd": 3.32007
+   },
+   {
+    "midi": 83,
+    "file": "violas/83_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.12014,
+    "loopEnd": 4.12023
+   },
+   {
+    "midi": 83,
+    "file": "violas/83_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.35998,
+    "loopEnd": 3.36025
+   },
+   {
+    "midi": 86,
+    "file": "violas/86_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.37984,
+    "loopEnd": 4.37982
+   },
+   {
+    "midi": 86,
+    "file": "violas/86_v2.ogg",
+    "vel": 0.85,
+    "loopStart": 0.47993,
+    "loopEnd": 3.47998
+   }
+  ]
+ },
+ "cellos": {
+  "family": "strings",
+  "articulation": "section sustain, vibrato",
+  "range": [
+   36,
+   72
+  ],
+  "attack": 0.06,
+  "release": 0.35,
+  "gain": 0.566,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 36,
+    "file": "cellos/36_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 2.92179,
+    "loopEnd": 5.92122
+   },
+   {
+    "midi": 36,
+    "file": "cellos/36_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 2.45887,
+    "loopEnd": 5.45984
+   },
+   {
+    "midi": 40,
+    "file": "cellos/40_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.86032,
+    "loopEnd": 3.86036
+   },
+   {
+    "midi": 40,
+    "file": "cellos/40_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.28057,
+    "loopEnd": 3.27993
+   },
+   {
+    "midi": 43,
+    "file": "cellos/43_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.83576,
+    "loopEnd": 3.83912
+   },
+   {
+    "midi": 43,
+    "file": "cellos/43_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.27789,
+    "loopEnd": 3.28066
+   },
+   {
+    "midi": 47,
+    "file": "cellos/47_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.7219,
+    "loopEnd": 3.72088
+   },
+   {
+    "midi": 47,
+    "file": "cellos/47_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.33986,
+    "loopEnd": 3.33961
+   },
+   {
+    "midi": 50,
+    "file": "cellos/50_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.46061,
+    "loopEnd": 4.45937
+   },
+   {
+    "midi": 50,
+    "file": "cellos/50_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.2605,
+    "loopEnd": 3.25943
+   },
+   {
+    "midi": 53,
+    "file": "cellos/53_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.71991,
+    "loopEnd": 4.72102
+   },
+   {
+    "midi": 53,
+    "file": "cellos/53_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.55907,
+    "loopEnd": 3.55859
+   },
+   {
+    "midi": 57,
+    "file": "cellos/57_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.62011,
+    "loopEnd": 3.61959
+   },
+   {
+    "midi": 57,
+    "file": "cellos/57_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.35907,
+    "loopEnd": 3.3595
+   },
+   {
+    "midi": 60,
+    "file": "cellos/60_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.69943,
+    "loopEnd": 3.69998
+   },
+   {
+    "midi": 60,
+    "file": "cellos/60_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.27995,
+    "loopEnd": 3.28034
+   },
+   {
+    "midi": 64,
+    "file": "cellos/64_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.82007,
+    "loopEnd": 3.81991
+   },
+   {
+    "midi": 64,
+    "file": "cellos/64_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.47998,
+    "loopEnd": 3.47998
+   },
+   {
+    "midi": 67,
+    "file": "cellos/67_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.51902,
+    "loopEnd": 4.51932
+   },
+   {
+    "midi": 67,
+    "file": "cellos/67_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.37957,
+    "loopEnd": 3.37998
+   },
+   {
+    "midi": 71,
+    "file": "cellos/71_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 0.79984,
+    "loopEnd": 3.79998
+   },
+   {
+    "midi": 71,
+    "file": "cellos/71_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.74011,
+    "loopEnd": 3.74018
+   },
+   {
+    "midi": 74,
+    "file": "cellos/74_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.01984,
+    "loopEnd": 4.01989
+   },
+   {
+    "midi": 74,
+    "file": "cellos/74_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.43982,
+    "loopEnd": 3.44016
+   },
+   {
+    "midi": 77,
+    "file": "cellos/77_v1.ogg",
+    "vel": 0.45,
+    "loopStart": 1.15975,
+    "loopEnd": 4.1595
+   },
+   {
+    "midi": 77,
+    "file": "cellos/77_v3.ogg",
+    "vel": 0.85,
+    "loopStart": 0.34025,
+    "loopEnd": 3.33989
+   }
+  ]
+ },
+ "contrabass": {
+  "family": "strings",
+  "articulation": "solo sustain, no vibrato",
+  "range": [
+   28,
+   55
+  ],
+  "attack": 0.05,
+  "release": 0.3,
+  "gain": 0.918,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 28,
+    "file": "contrabass/28.ogg",
+    "loopStart": 0.55898,
+    "loopEnd": 3.5637
+   },
+   {
+    "midi": 30,
+    "file": "contrabass/30.ogg",
+    "loopStart": 0.65968,
+    "loopEnd": 3.65973
+   },
+   {
+    "midi": 31,
+    "file": "contrabass/31.ogg",
+    "loopStart": 0.29961,
+    "loopEnd": 3.29898
+   },
+   {
+    "midi": 34,
+    "file": "contrabass/34.ogg",
+    "loopStart": 0.47932,
+    "loopEnd": 3.47807
+   },
+   {
+    "midi": 36,
+    "file": "contrabass/36.ogg",
+    "loopStart": 0.52231,
+    "loopEnd": 3.51966
+   },
+   {
+    "midi": 38,
+    "file": "contrabass/38.ogg",
+    "loopStart": 1.35943,
+    "loopEnd": 4.35918
+   },
+   {
+    "midi": 40,
+    "file": "contrabass/40.ogg",
+    "loopStart": 0.32224,
+    "loopEnd": 3.3188
+   },
+   {
+    "midi": 42,
+    "file": "contrabass/42.ogg",
+    "loopStart": 0.65932,
+    "loopEnd": 3.66059
+   },
+   {
+    "midi": 44,
+    "file": "contrabass/44.ogg",
+    "loopStart": 0.59891,
+    "loopEnd": 3.59667
+   },
+   {
+    "midi": 45,
+    "file": "contrabass/45.ogg",
+    "loopStart": 1.5042,
+    "loopEnd": 4.49735
+   },
+   {
+    "midi": 49,
+    "file": "contrabass/49.ogg",
+    "loopStart": 0.579,
+    "loopEnd": 3.5807
+   },
+   {
+    "midi": 52,
+    "file": "contrabass/52.ogg",
+    "loopStart": 0.41905,
+    "loopEnd": 3.421
+   },
+   {
+    "midi": 56,
+    "file": "contrabass/56.ogg",
+    "loopStart": 0.75946,
+    "loopEnd": 3.75893
+   },
+   {
+    "midi": 59,
+    "file": "contrabass/59.ogg",
+    "loopStart": 0.64084,
+    "loopEnd": 3.6405
+   }
+  ]
+ },
+ "violinsPizz": {
+  "family": "strings",
+  "articulation": "section pizzicato",
+  "range": [
+   55,
+   88
+  ],
+  "attack": 0.003,
+  "release": 0.12,
+  "gain": 1.847,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 55,
+    "file": "violinsPizz/55.ogg"
+   },
+   {
+    "midi": 57,
+    "file": "violinsPizz/57.ogg"
+   },
+   {
+    "midi": 59,
+    "file": "violinsPizz/59.ogg"
+   },
+   {
+    "midi": 62,
+    "file": "violinsPizz/62.ogg"
+   },
+   {
+    "midi": 66,
+    "file": "violinsPizz/66.ogg"
+   },
+   {
+    "midi": 69,
+    "file": "violinsPizz/69.ogg"
+   },
+   {
+    "midi": 72,
+    "file": "violinsPizz/72.ogg"
+   },
+   {
+    "midi": 76,
+    "file": "violinsPizz/76.ogg"
+   },
+   {
+    "midi": 79,
+    "file": "violinsPizz/79.ogg"
+   },
+   {
+    "midi": 83,
+    "file": "violinsPizz/83.ogg"
+   },
+   {
+    "midi": 86,
+    "file": "violinsPizz/86.ogg"
+   }
+  ]
+ },
+ "cellosPizz": {
+  "family": "strings",
+  "articulation": "section pizzicato",
+  "range": [
+   36,
+   67
+  ],
+  "attack": 0.003,
+  "release": 0.15,
+  "gain": 0.794,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 36,
+    "file": "cellosPizz/36.ogg"
+   },
+   {
+    "midi": 40,
+    "file": "cellosPizz/40.ogg"
+   },
+   {
+    "midi": 43,
+    "file": "cellosPizz/43.ogg"
+   },
+   {
+    "midi": 47,
+    "file": "cellosPizz/47.ogg"
+   },
+   {
+    "midi": 50,
+    "file": "cellosPizz/50.ogg"
+   },
+   {
+    "midi": 53,
+    "file": "cellosPizz/53.ogg"
+   },
+   {
+    "midi": 57,
+    "file": "cellosPizz/57.ogg"
+   },
+   {
+    "midi": 60,
+    "file": "cellosPizz/60.ogg"
+   },
+   {
+    "midi": 64,
+    "file": "cellosPizz/64.ogg"
+   },
+   {
+    "midi": 67,
+    "file": "cellosPizz/67.ogg"
+   },
+   {
+    "midi": 71,
+    "file": "cellosPizz/71.ogg"
+   },
+   {
+    "midi": 74,
+    "file": "cellosPizz/74.ogg"
+   },
+   {
+    "midi": 77,
+    "file": "cellosPizz/77.ogg"
+   }
+  ]
+ },
+ "harp": {
+  "family": "strings",
+  "articulation": "plucked",
+  "range": [
+   31,
+   96
+  ],
+  "attack": 0.002,
+  "release": 1.0,
+  "gain": 1.47,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 28,
+    "file": "harp/28.ogg"
+   },
+   {
+    "midi": 31,
+    "file": "harp/31.ogg"
+   },
+   {
+    "midi": 35,
+    "file": "harp/35.ogg"
+   },
+   {
+    "midi": 38,
+    "file": "harp/38.ogg"
+   },
+   {
+    "midi": 41,
+    "file": "harp/41.ogg"
+   },
+   {
+    "midi": 45,
+    "file": "harp/45.ogg"
+   },
+   {
+    "midi": 48,
+    "file": "harp/48.ogg"
+   },
+   {
+    "midi": 52,
+    "file": "harp/52.ogg"
+   },
+   {
+    "midi": 55,
+    "file": "harp/55.ogg"
+   },
+   {
+    "midi": 59,
+    "file": "harp/59.ogg"
+   },
+   {
+    "midi": 62,
+    "file": "harp/62.ogg"
+   },
+   {
+    "midi": 65,
+    "file": "harp/65.ogg"
+   },
+   {
+    "midi": 69,
+    "file": "harp/69.ogg"
+   },
+   {
+    "midi": 72,
+    "file": "harp/72.ogg"
+   },
+   {
+    "midi": 76,
+    "file": "harp/76.ogg"
+   },
+   {
+    "midi": 79,
+    "file": "harp/79.ogg"
+   },
+   {
+    "midi": 83,
+    "file": "harp/83.ogg"
+   },
+   {
+    "midi": 86,
+    "file": "harp/86.ogg"
+   },
+   {
+    "midi": 89,
+    "file": "harp/89.ogg"
+   },
+   {
+    "midi": 93,
+    "file": "harp/93.ogg"
+   },
+   {
+    "midi": 95,
+    "file": "harp/95.ogg"
+   },
+   {
+    "midi": 98,
+    "file": "harp/98.ogg"
+   },
+   {
+    "midi": 101,
+    "file": "harp/101.ogg"
+   }
+  ]
+ },
+ "flute": {
+  "family": "woodwinds",
+  "articulation": "sustain, no vibrato",
+  "range": [
+   60,
+   93
+  ],
+  "attack": 0.04,
+  "release": 0.2,
+  "gain": 0.46,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 60,
+    "file": "flute/60.ogg",
+    "loopStart": 0.50014,
+    "loopEnd": 3.50075
+   },
+   {
+    "midi": 64,
+    "file": "flute/64.ogg",
+    "loopStart": 0.35971,
+    "loopEnd": 3.35986
+   },
+   {
+    "midi": 69,
+    "file": "flute/69.ogg",
+    "loopStart": 0.26025,
+    "loopEnd": 3.26014
+   },
+   {
+    "midi": 72,
+    "file": "flute/72.ogg",
+    "loopStart": 0.24014,
+    "loopEnd": 3.24061
+   },
+   {
+    "midi": 76,
+    "file": "flute/76.ogg",
+    "loopStart": 0.27957,
+    "loopEnd": 3.28002
+   },
+   {
+    "midi": 81,
+    "file": "flute/81.ogg",
+    "loopStart": 0.26011,
+    "loopEnd": 3.26018
+   },
+   {
+    "midi": 84,
+    "file": "flute/84.ogg",
+    "loopStart": 0.25995,
+    "loopEnd": 3.26043
+   },
+   {
+    "midi": 88,
+    "file": "flute/88.ogg",
+    "loopStart": 0.23995,
+    "loopEnd": 3.24034
+   },
+   {
+    "midi": 93,
+    "file": "flute/93.ogg",
+    "loopStart": 0.9,
+    "loopEnd": 3.90002
+   }
+  ]
+ },
+ "oboe": {
+  "family": "woodwinds",
+  "articulation": "sustain",
+  "range": [
+   58,
+   89
+  ],
+  "attack": 0.03,
+  "release": 0.18,
+  "gain": 0.363,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 58,
+    "file": "oboe/58.ogg",
+    "loopStart": 0.68009,
+    "loopEnd": 3.6802
+   },
+   {
+    "midi": 62,
+    "file": "oboe/62.ogg",
+    "loopStart": 0.26011,
+    "loopEnd": 3.25998
+   },
+   {
+    "midi": 65,
+    "file": "oboe/65.ogg",
+    "loopStart": 0.39966,
+    "loopEnd": 3.3998
+   },
+   {
+    "midi": 70,
+    "file": "oboe/70.ogg",
+    "loopStart": 0.22023,
+    "loopEnd": 3.22034
+   },
+   {
+    "midi": 74,
+    "file": "oboe/74.ogg",
+    "loopStart": 0.27998,
+    "loopEnd": 3.2798
+   },
+   {
+    "midi": 77,
+    "file": "oboe/77.ogg",
+    "loopStart": 0.26036,
+    "loopEnd": 3.26002
+   },
+   {
+    "midi": 82,
+    "file": "oboe/82.ogg",
+    "loopStart": 0.25968,
+    "loopEnd": 3.26045
+   },
+   {
+    "midi": 86,
+    "file": "oboe/86.ogg",
+    "loopStart": 0.30036,
+    "loopEnd": 3.29977
+   },
+   {
+    "midi": 89,
+    "file": "oboe/89.ogg",
+    "loopStart": 0.26,
+    "loopEnd": 3.2602
+   }
+  ]
+ },
+ "clarinet": {
+  "family": "woodwinds",
+  "articulation": "sustain",
+  "range": [
+   50,
+   89
+  ],
+  "attack": 0.03,
+  "release": 0.18,
+  "gain": 0.505,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 50,
+    "file": "clarinet/50.ogg",
+    "loopStart": 0.69968,
+    "loopEnd": 3.701
+   },
+   {
+    "midi": 53,
+    "file": "clarinet/53.ogg",
+    "loopStart": 0.33993,
+    "loopEnd": 3.33993
+   },
+   {
+    "midi": 58,
+    "file": "clarinet/58.ogg",
+    "loopStart": 0.33939,
+    "loopEnd": 3.34011
+   },
+   {
+    "midi": 62,
+    "file": "clarinet/62.ogg",
+    "loopStart": 0.32052,
+    "loopEnd": 3.3205
+   },
+   {
+    "midi": 65,
+    "file": "clarinet/65.ogg",
+    "loopStart": 0.33977,
+    "loopEnd": 3.34132
+   },
+   {
+    "midi": 70,
+    "file": "clarinet/70.ogg",
+    "loopStart": 0.35927,
+    "loopEnd": 3.36086
+   },
+   {
+    "midi": 74,
+    "file": "clarinet/74.ogg",
+    "loopStart": 0.27982,
+    "loopEnd": 3.27952
+   },
+   {
+    "midi": 77,
+    "file": "clarinet/77.ogg",
+    "loopStart": 0.78025,
+    "loopEnd": 3.77952
+   },
+   {
+    "midi": 82,
+    "file": "clarinet/82.ogg",
+    "loopStart": 0.28016,
+    "loopEnd": 3.28016
+   },
+   {
+    "midi": 86,
+    "file": "clarinet/86.ogg",
+    "loopStart": 0.30011,
+    "loopEnd": 3.29984
+   },
+   {
+    "midi": 90,
+    "file": "clarinet/90.ogg",
+    "loopStart": 0.28014,
+    "loopEnd": 3.28036
+   }
+  ]
+ },
+ "bassoon": {
+  "family": "woodwinds",
+  "articulation": "sustain",
+  "range": [
+   34,
+   72
+  ],
+  "attack": 0.03,
+  "release": 0.18,
+  "gain": 0.465,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 34,
+    "file": "bassoon/34.ogg",
+    "loopStart": 0.23973,
+    "loopEnd": 3.24011
+   },
+   {
+    "midi": 37,
+    "file": "bassoon/37.ogg",
+    "loopStart": 0.23975,
+    "loopEnd": 3.23957
+   },
+   {
+    "midi": 41,
+    "file": "bassoon/41.ogg",
+    "loopStart": 0.24107,
+    "loopEnd": 3.23961
+   },
+   {
+    "midi": 45,
+    "file": "bassoon/45.ogg",
+    "loopStart": 0.21973,
+    "loopEnd": 3.21989
+   },
+   {
+    "midi": 46,
+    "file": "bassoon/46.ogg",
+    "loopStart": 0.22002,
+    "loopEnd": 3.22016
+   },
+   {
+    "midi": 48,
+    "file": "bassoon/48.ogg",
+    "loopStart": 0.23918,
+    "loopEnd": 3.2393
+   },
+   {
+    "midi": 55,
+    "file": "bassoon/55.ogg",
+    "loopStart": 0.22025,
+    "loopEnd": 3.2193
+   },
+   {
+    "midi": 60,
+    "file": "bassoon/60.ogg",
+    "loopStart": 0.27946,
+    "loopEnd": 3.27968
+   },
+   {
+    "midi": 63,
+    "file": "bassoon/63.ogg",
+    "loopStart": 0.26009,
+    "loopEnd": 3.26061
+   },
+   {
+    "midi": 68,
+    "file": "bassoon/68.ogg",
+    "loopStart": 0.27971,
+    "loopEnd": 3.27986
+   },
+   {
+    "midi": 69,
+    "file": "bassoon/69.ogg",
+    "loopStart": 0.24011,
+    "loopEnd": 3.23955
+   },
+   {
+    "midi": 72,
+    "file": "bassoon/72.ogg",
+    "loopStart": 0.26023,
+    "loopEnd": 3.26014
+   },
+   {
+    "midi": 75,
+    "file": "bassoon/75.ogg",
+    "loopStart": 0.32039,
+    "loopEnd": 3.31946
+   }
+  ]
+ },
+ "horn": {
+  "family": "brass",
+  "articulation": "sustain",
+  "range": [
+   41,
+   77
+  ],
+  "attack": 0.05,
+  "release": 0.25,
+  "gain": 1.015,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 33,
+    "file": "horn/33.ogg",
+    "loopStart": 0.36068,
+    "loopEnd": 3.36007
+   },
+   {
+    "midi": 36,
+    "file": "horn/36.ogg",
+    "loopStart": 0.32025,
+    "loopEnd": 3.31934
+   },
+   {
+    "midi": 39,
+    "file": "horn/39.ogg",
+    "loopStart": 0.35948,
+    "loopEnd": 3.35964
+   },
+   {
+    "midi": 43,
+    "file": "horn/43.ogg",
+    "loopStart": 0.24034,
+    "loopEnd": 3.24091
+   },
+   {
+    "midi": 46,
+    "file": "horn/46.ogg",
+    "loopStart": 0.32111,
+    "loopEnd": 3.32005
+   },
+   {
+    "midi": 50,
+    "file": "horn/50.ogg",
+    "loopStart": 0.26102,
+    "loopEnd": 3.26082
+   },
+   {
+    "midi": 53,
+    "file": "horn/53.ogg",
+    "loopStart": 0.26098,
+    "loopEnd": 3.26027
+   },
+   {
+    "midi": 57,
+    "file": "horn/57.ogg",
+    "loopStart": 0.25968,
+    "loopEnd": 3.25902
+   },
+   {
+    "midi": 60,
+    "file": "horn/60.ogg",
+    "loopStart": 0.30043,
+    "loopEnd": 3.3019
+   },
+   {
+    "midi": 74,
+    "file": "horn/74.ogg",
+    "loopStart": 0.26032,
+    "loopEnd": 3.26007
+   },
+   {
+    "midi": 77,
+    "file": "horn/77.ogg",
+    "loopStart": 0.36018,
+    "loopEnd": 3.35986
+   }
+  ]
+ },
+ "trumpet": {
+  "family": "brass",
+  "articulation": "sustain",
+  "range": [
+   55,
+   82
+  ],
+  "attack": 0.03,
+  "release": 0.2,
+  "gain": 0.379,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 53,
+    "file": "trumpet/53.ogg",
+    "loopStart": 0.31995,
+    "loopEnd": 3.32011
+   },
+   {
+    "midi": 57,
+    "file": "trumpet/57.ogg",
+    "loopStart": 0.22016,
+    "loopEnd": 3.21993
+   },
+   {
+    "midi": 60,
+    "file": "trumpet/60.ogg",
+    "loopStart": 0.22016,
+    "loopEnd": 3.22034
+   },
+   {
+    "midi": 63,
+    "file": "trumpet/63.ogg",
+    "loopStart": 0.31941,
+    "loopEnd": 3.32088
+   },
+   {
+    "midi": 67,
+    "file": "trumpet/67.ogg",
+    "loopStart": 0.32014,
+    "loopEnd": 3.32018
+   },
+   {
+    "midi": 70,
+    "file": "trumpet/70.ogg",
+    "loopStart": 0.22002,
+    "loopEnd": 3.21998
+   },
+   {
+    "midi": 74,
+    "file": "trumpet/74.ogg",
+    "loopStart": 0.21921,
+    "loopEnd": 3.21937
+   },
+   {
+    "midi": 77,
+    "file": "trumpet/77.ogg",
+    "loopStart": 0.23984,
+    "loopEnd": 3.24032
+   },
+   {
+    "midi": 81,
+    "file": "trumpet/81.ogg",
+    "loopStart": 0.24018,
+    "loopEnd": 3.23982
+   },
+   {
+    "midi": 84,
+    "file": "trumpet/84.ogg",
+    "loopStart": 0.26007,
+    "loopEnd": 3.26002
+   }
+  ]
+ },
+ "trombone": {
+  "family": "brass",
+  "articulation": "tenor trombone sustain",
+  "range": [
+   40,
+   68
+  ],
+  "attack": 0.04,
+  "release": 0.22,
+  "gain": 1.17,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 34,
+    "file": "trombone/34.ogg",
+    "loopStart": 0.71921,
+    "loopEnd": 3.03045
+   },
+   {
+    "midi": 37,
+    "file": "trombone/37.ogg",
+    "loopStart": 0.25966,
+    "loopEnd": 3.25914
+   },
+   {
+    "midi": 39,
+    "file": "trombone/39.ogg",
+    "loopStart": 0.83982,
+    "loopEnd": 3.84086
+   },
+   {
+    "midi": 41,
+    "file": "trombone/41.ogg",
+    "loopStart": 0.2398,
+    "loopEnd": 3.24009
+   },
+   {
+    "midi": 46,
+    "file": "trombone/46.ogg",
+    "loopStart": 0.29993,
+    "loopEnd": 3.30048
+   },
+   {
+    "midi": 50,
+    "file": "trombone/50.ogg",
+    "loopStart": 0.48016,
+    "loopEnd": 3.48029
+   },
+   {
+    "midi": 53,
+    "file": "trombone/53.ogg",
+    "loopStart": 0.26125,
+    "loopEnd": 3.25952
+   },
+   {
+    "midi": 60,
+    "file": "trombone/60.ogg",
+    "loopStart": 0.36016,
+    "loopEnd": 3.36073
+   },
+   {
+    "midi": 61,
+    "file": "trombone/61.ogg",
+    "loopStart": 0.47941,
+    "loopEnd": 3.47932
+   },
+   {
+    "midi": 63,
+    "file": "trombone/63.ogg",
+    "loopStart": 0.59943,
+    "loopEnd": 3.5998
+   },
+   {
+    "midi": 65,
+    "file": "trombone/65.ogg",
+    "loopStart": 0.3005,
+    "loopEnd": 3.30025
+   }
+  ]
+ },
+ "tuba": {
+  "family": "brass",
+  "articulation": "sustain",
+  "range": [
+   28,
+   58
+  ],
+  "attack": 0.05,
+  "release": 0.25,
+  "gain": 0.876,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 29,
+    "file": "tuba/29.ogg",
+    "loopStart": 0.27896,
+    "loopEnd": 3.24932
+   },
+   {
+    "midi": 34,
+    "file": "tuba/34.ogg",
+    "loopStart": 0.30177,
+    "loopEnd": 3.29966
+   },
+   {
+    "midi": 39,
+    "file": "tuba/39.ogg",
+    "loopStart": 0.33971,
+    "loopEnd": 3.3407
+   },
+   {
+    "midi": 41,
+    "file": "tuba/41.ogg",
+    "loopStart": 0.29803,
+    "loopEnd": 3.2995
+   },
+   {
+    "midi": 46,
+    "file": "tuba/46.ogg",
+    "loopStart": 0.30039,
+    "loopEnd": 3.29984
+   },
+   {
+    "midi": 50,
+    "file": "tuba/50.ogg",
+    "loopStart": 0.23819,
+    "loopEnd": 3.24102
+   },
+   {
+    "midi": 53,
+    "file": "tuba/53.ogg",
+    "loopStart": 0.26277,
+    "loopEnd": 3.26274
+   },
+   {
+    "midi": 58,
+    "file": "tuba/58.ogg",
+    "loopStart": 0.27859,
+    "loopEnd": 3.27828
+   },
+   {
+    "midi": 62,
+    "file": "tuba/62.ogg",
+    "loopStart": 0.28014,
+    "loopEnd": 3.27855
+   }
+  ]
+ },
+ "timpani": {
+  "family": "percussion",
+  "articulation": "hits, 5 drums",
+  "range": [
+   38,
+   58
+  ],
+  "attack": 0.002,
+  "release": 1.2,
+  "gain": 1.564,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 41.5,
+    "file": "timpani/41p5.ogg"
+   },
+   {
+    "midi": 46.75,
+    "file": "timpani/46p75.ogg"
+   },
+   {
+    "midi": 49.5,
+    "file": "timpani/49p5.ogg"
+   },
+   {
+    "midi": 52.5,
+    "file": "timpani/52p5.ogg"
+   },
+   {
+    "midi": 54.5,
+    "file": "timpani/54p5.ogg"
+   }
+  ]
+ },
+ "timpaniRoll": {
+  "family": "percussion",
+  "articulation": "rolls, 5 drums",
+  "range": [
+   38,
+   58
+  ],
+  "attack": 0.15,
+  "release": 0.5,
+  "gain": 0.703,
+  "sustained": true,
+  "files": [
+   {
+    "midi": 41.5,
+    "file": "timpaniRoll/41p5.ogg",
+    "loopStart": 0.3017,
+    "loopEnd": 3.30079
+   },
+   {
+    "midi": 47.5,
+    "file": "timpaniRoll/47p5.ogg",
+    "loopStart": 0.43916,
+    "loopEnd": 3.44156
+   },
+   {
+    "midi": 49.5,
+    "file": "timpaniRoll/49p5.ogg",
+    "loopStart": 0.2788,
+    "loopEnd": 3.28018
+   },
+   {
+    "midi": 52.0,
+    "file": "timpaniRoll/52.ogg",
+    "loopStart": 0.19909,
+    "loopEnd": 3.20172
+   },
+   {
+    "midi": 55.0,
+    "file": "timpaniRoll/55.ogg",
+    "loopStart": 0.19873,
+    "loopEnd": 3.19884
+   }
+  ]
+ },
+ "piano": {
+  "family": "keys",
+  "articulation": "upright piano",
+  "range": [
+   21,
+   108
+  ],
+  "attack": 0.002,
+  "release": 0.35,
+  "gain": 1.211,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 21,
+    "file": "piano/21.ogg"
+   },
+   {
+    "midi": 25,
+    "file": "piano/25.ogg"
+   },
+   {
+    "midi": 29,
+    "file": "piano/29.ogg"
+   },
+   {
+    "midi": 33,
+    "file": "piano/33.ogg"
+   },
+   {
+    "midi": 37,
+    "file": "piano/37.ogg"
+   },
+   {
+    "midi": 41,
+    "file": "piano/41.ogg"
+   },
+   {
+    "midi": 45,
+    "file": "piano/45.ogg"
+   },
+   {
+    "midi": 49,
+    "file": "piano/49.ogg"
+   },
+   {
+    "midi": 53,
+    "file": "piano/53.ogg"
+   },
+   {
+    "midi": 57,
+    "file": "piano/57.ogg"
+   },
+   {
+    "midi": 61,
+    "file": "piano/61.ogg"
+   },
+   {
+    "midi": 65,
+    "file": "piano/65.ogg"
+   },
+   {
+    "midi": 69,
+    "file": "piano/69.ogg"
+   },
+   {
+    "midi": 73,
+    "file": "piano/73.ogg"
+   },
+   {
+    "midi": 77,
+    "file": "piano/77.ogg"
+   },
+   {
+    "midi": 81,
+    "file": "piano/81.ogg"
+   },
+   {
+    "midi": 85,
+    "file": "piano/85.ogg"
+   },
+   {
+    "midi": 89,
+    "file": "piano/89.ogg"
+   },
+   {
+    "midi": 93,
+    "file": "piano/93.ogg"
+   },
+   {
+    "midi": 97,
+    "file": "piano/97.ogg"
+   },
+   {
+    "midi": 101,
+    "file": "piano/101.ogg"
+   },
+   {
+    "midi": 105,
+    "file": "piano/105.ogg"
+   },
+   {
+    "midi": 109,
+    "file": "piano/109.ogg"
+   }
+  ]
+ },
+ "glockenspiel": {
+  "family": "keys",
+  "articulation": "struck, stands in for celesta",
+  "range": [
+   79,
+   108
+  ],
+  "attack": 0.001,
+  "release": 1.0,
+  "gain": 0.773,
+  "sustained": false,
+  "files": [
+   {
+    "midi": 79,
+    "file": "glockenspiel/79.ogg"
+   },
+   {
+    "midi": 84,
+    "file": "glockenspiel/84.ogg"
+   },
+   {
+    "midi": 91,
+    "file": "glockenspiel/91.ogg"
+   },
+   {
+    "midi": 96,
+    "file": "glockenspiel/96.ogg"
+   },
+   {
+    "midi": 103,
+    "file": "glockenspiel/103.ogg"
+   },
+   {
+    "midi": 108,
+    "file": "glockenspiel/108.ogg"
+   }
+  ]
+ }
+}
