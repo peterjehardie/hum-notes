@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Voice lab · Hum Notes</title>
 <link rel="stylesheet" href="theme.css">
+<script src="themes.js"></script>
 <style>
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -15,8 +16,8 @@ body {
   max-width: 1200px; margin: 0 auto;
 }
 header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-h1 { font: 700 20px/1 var(--ui); margin: 0; letter-spacing: -0.01em; }
-h2 { font: 500 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0; }
+h1 { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 24px; line-height: 1; margin: 0; }
+h2 { font-family: var(--h3-font); font-size: var(--h3-size); font-weight: var(--h3-weight); font-style: var(--h3-style); text-transform: var(--h3-case); letter-spacing: var(--h3-spacing); line-height: 1.1; margin: 0; }
 header a { color: var(--muted); text-decoration: none; font-size: 13px; }
 header a:hover { color: var(--accent-strong); }
 .spacer { flex: 1; }
@@ -52,7 +53,7 @@ button.chip.off { opacity: 0.45; text-decoration: line-through; }
 
 /* the karaoke prompt */
 .prompt { display: grid; grid-template-columns: 1fr auto; gap: 10px 20px; align-items: center; }
-.say { font: 600 52px/1.05 var(--ui); letter-spacing: -0.02em; min-height: 56px; }
+.say { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 52px; line-height: 1.05; letter-spacing: -0.02em; min-height: 56px; }
 .say b { color: var(--accent-strong); font-weight: 700; }
 .say small { font-size: 0.5em; color: var(--muted); font-weight: 500; }
 .phase { font-size: 15px; color: var(--muted); min-height: 21px; }

@@ -1,78 +1,37 @@
-/* Hum Notes: shared look. Three themes: light and mid carry dark text, dark carries light text.
-   Every colour the pages and the canvases use is a token here; app.js reads the canvas ones. */
+/* Hum Notes: shared look. Colours, type and corner sizes are set by themes.js as custom properties
+   (one style × one tone); the defaults here only cover the moment before it runs. Shape variants
+   per style hang off data attributes on <html>: data-cards, data-lamps, data-rec, data-seg. */
+@font-face { font-family: 'Instrument Sans'; src: url(fonts/instrumentsans.woff2) format('woff2'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Instrument Serif'; src: url(fonts/instrumentserif.woff2) format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Instrument Serif'; src: url(fonts/instrumentserif-italic.woff2) format('woff2'); font-weight: 400; font-style: italic; font-display: swap; }
 @font-face { font-family: 'Space Grotesk'; src: url(fonts/spacegrotesk.woff2) format('woff2'); font-weight: 300 700; font-display: swap; }
 @font-face { font-family: 'JetBrains Mono'; src: url(fonts/jetbrainsmono.woff2) format('woff2'); font-weight: 400 700; font-display: swap; }
-
-:root, [data-theme="light"] {
-  color-scheme: light;
-  --bg: #E6E9ED; --panel: #F7F8FA; --raise: #FFFFFF; --sunk: #E2E6EA;
-  --line: #D2D7DD; --line-strong: #A1A9B2;
-  --text: #0D1014; --muted: #545E69;
-  --accent: #2D4BF0; --accent-ink: #213CD0; --accent-soft: rgba(45,75,240,0.12); --on-accent: #FFFFFF;
-  --rec: #DE3631; --on-rec: #FFFFFF; --ok: #1E7F45; --bad: #C2301F;
-  --shadow-key: 0 1px 0 rgba(13,16,20,0.05), 0 1px 3px rgba(13,16,20,0.12);
-  --shadow-pop: 0 12px 32px rgba(13,16,20,0.18);
-  --roll: #FCFDFE;
-  --lane-black: rgba(13,16,20,0.045); --lane-root: rgba(45,75,240,0.11); --lane-fifth: rgba(45,75,240,0.045);
-  --trace: #2D4BF0; --note: rgba(45,75,240,0.20); --note-edge: #213CD0; --grid: rgba(13,16,20,0.07);
-  --bar: rgba(13,16,20,0.24); --wave: rgba(13,16,20,0.15);
-  --bk-note: rgba(13,16,20,0.07); --bk-edge: #A1A9B2; --bk-low: rgba(13,16,20,0.13); --bk-low-edge: #545E69;
-  --deg1: #F0595E; --deg2: #F59E2E; --deg3: #E2BB12; --deg4: #46BC66; --deg5: #35AED6; --deg6: #8B7AF0; --deg7: #EC67AC; --deg0: #B4BBC3; --on-deg: #0D1014;
-  --layer1: #0B9690; --layer2: #C96A00; --layer3: #B62BC9; --layer4: #5B9410;
-}
-[data-theme="mid"] {
-  color-scheme: light;
-  --bg: #8B9299; --panel: #9AA1A9; --raise: #AEB4BB; --sunk: #868D95;
-  --line: #788089; --line-strong: #4C535C;
-  --text: #06080B; --muted: #1C2229;
-  --accent: #1A2DB5; --accent-ink: #0F1D85; --accent-soft: rgba(15,29,133,0.16); --on-accent: #FFFFFF;
-  --rec: #A9131A; --on-rec: #FFFFFF; --ok: #0D4A24; --bad: #7A1209;
-  --shadow-key: 0 1px 0 rgba(6,8,11,0.10), 0 1px 3px rgba(6,8,11,0.22);
-  --shadow-pop: 0 12px 32px rgba(6,8,11,0.32);
-  --roll: #A4ABB2;
-  --lane-black: rgba(6,8,11,0.07); --lane-root: rgba(15,29,133,0.16); --lane-fifth: rgba(15,29,133,0.07);
-  --trace: #0F1D85; --note: rgba(15,29,133,0.22); --note-edge: #0A1561; --grid: rgba(6,8,11,0.10);
-  --bar: rgba(6,8,11,0.32); --wave: rgba(6,8,11,0.20);
-  --bk-note: rgba(6,8,11,0.08); --bk-edge: #4C535C; --bk-low: rgba(6,8,11,0.16); --bk-low-edge: #1C2229;
-  --deg1: #EC474C; --deg2: #F38C14; --deg3: #E6BC0E; --deg4: #34B257; --deg5: #22A5D1; --deg6: #8370EE; --deg7: #E8559F; --deg0: #6C747D; --on-deg: #06080B;
-  --layer1: #04625E; --layer2: #8A4700; --layer3: #7E1290; --layer4: #375E04;
-}
-[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0A0C0F; --panel: #12151A; --raise: #1B1F25; --sunk: #0D1014;
-  --line: #262B32; --line-strong: #3D444D;
-  --text: #E7EAEE; --muted: #909AA5;
-  --accent: #7088FF; --accent-ink: #93A5FF; --accent-soft: rgba(112,136,255,0.16); --on-accent: #0A0C0F;
-  --rec: #FF5A54; --on-rec: #0A0C0F; --ok: #6CD98A; --bad: #FF8A73;
-  --shadow-key: 0 1px 0 rgba(255,255,255,0.03) inset, 0 1px 3px rgba(0,0,0,0.5);
-  --shadow-pop: 0 14px 36px rgba(0,0,0,0.6);
-  --roll: #0E1115;
-  --lane-black: rgba(0,0,0,0.30); --lane-root: rgba(112,136,255,0.13); --lane-fifth: rgba(112,136,255,0.05);
-  --trace: #93A5FF; --note: rgba(112,136,255,0.28); --note-edge: #93A5FF; --grid: rgba(231,234,238,0.06);
-  --bar: rgba(231,234,238,0.18); --wave: rgba(231,234,238,0.14);
-  --bk-note: rgba(231,234,238,0.06); --bk-edge: #4A525C; --bk-low: rgba(231,234,238,0.12); --bk-low-edge: #909AA5;
-  --deg1: #FF6B6F; --deg2: #FFA94D; --deg3: #FFD43B; --deg4: #69DB7C; --deg5: #4FC3F7; --deg6: #A99BFF; --deg7: #F783C0; --deg0: #5C6570; --on-deg: #0A0C0F;
-  --layer1: #2DD4BF; --layer2: #FBBF24; --layer3: #E879F9; --layer4: #A3E635;
-}
-/* older names, for pages written before the tokens above */
-:root { --surface: var(--panel); --accent-strong: var(--accent-ink); --good: var(--ok); }
+@font-face { font-family: 'Newsreader'; src: url(fonts/newsreader.woff2) format('woff2'); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url(fonts/nunito.woff2) format('woff2'); font-weight: 400 800; font-display: swap; }
 
 :root {
-  --ui: 'Space Grotesk', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --r-ctl: 6px; --r-panel: 10px;
+  --bg: #F3F2EF; --panel: #FFFFFF; --raise: #FFFFFF; --sunk: #F1F0EE; --line: #E1E0DD; --line-strong: #B1AFAA;
+  --text: #1C1B19; --muted: #6A675F; --accent: #405468; --accent-ink: #405468; --accent-soft: rgba(64,84,104,0.12); --on-accent: #FFFFFF;
+  --primary-bg: #1C1B19; --primary-fg: #FFFFFF; --rec: #B63A30; --on-rec: #FFFFFF; --ok: #1E7F45; --bad: #B42318;
+  --shadow-key: 0 1px 3px rgba(0,0,0,0.11); --shadow-pop: 0 12px 32px rgba(0,0,0,0.16); --shadow-card: 0 6px 22px rgba(0,0,0,0.06);
+  --roll: #FFFFFF; --on-deg: #161616;
+  --ui: 'Instrument Sans', system-ui, sans-serif; --display: 'Instrument Serif', Georgia, serif; --display-weight: 400; --display-style: normal;
+  --mono: var(--ui); --r-ctl: 8px; --r-panel: 14px;
+  --label-font: var(--ui); --label-size: 12px; --label-case: none; --label-spacing: 0; --label-weight: 500; --label-variant: normal;
+  --h3-font: var(--display); --h3-size: 20px; --h3-case: none; --h3-spacing: 0; --h3-weight: 400; --h3-style: normal; --h3-rule: none;
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--text); font: 13px/1.4 var(--ui); -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--text); font: 13px/1.4 var(--ui); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
 
-/* micro labels: mono capitals */
 .label {
-  font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  font-family: var(--label-font); font-size: var(--label-size); font-weight: var(--label-weight); line-height: 1.15;
+  text-transform: var(--label-case); letter-spacing: var(--label-spacing); font-variant: var(--label-variant); color: var(--muted);
 }
 .num, .val { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.display { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); }
 
 button, select, input[type=number] {
   font: 500 12.5px/1 var(--ui); color: var(--text); background: var(--raise);
@@ -87,21 +46,29 @@ button:disabled { opacity: 0.42; cursor: default; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button.small { height: 26px; padding: 0 9px; font-size: 12px; }
 button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-button.primary:hover:not(:disabled) { filter: brightness(1.08); border-color: var(--accent); }
+button.primary { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); font-weight: 600; }
+button.primary:hover:not(:disabled) { filter: brightness(1.12); border-color: var(--primary-bg); }
 input[type=range] { accent-color: var(--accent); width: 100%; min-width: 80px; margin: 0; }
 
-/* segmented control: keys in a sunk track */
+/* segmented control. track: keys in a sunk track · underline: words, the chosen one underlined · invert: boxed, chosen one inverted */
 .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; background: var(--sunk); border: 1px solid var(--line); border-radius: calc(var(--r-ctl) + 2px); }
 .seg button { height: 26px; border: 0; border-radius: var(--r-ctl); background: transparent; color: var(--muted); padding: 0 10px; }
 .seg button:hover:not(:disabled) { color: var(--text); }
 .seg button.on { background: var(--raise); color: var(--text); box-shadow: var(--shadow-key); font-weight: 600; }
+[data-seg="underline"] .seg { background: none; border: 0; padding: 0; gap: 2px 12px; }
+[data-seg="underline"] .seg button { padding: 0 1px; border-radius: 0; border-bottom: 1.5px solid transparent; }
+[data-seg="underline"] .seg button.on { background: none; box-shadow: none; border-bottom-color: var(--text); }
+[data-seg="invert"] .seg { gap: 0; padding: 0; background: var(--raise); }
+[data-seg="invert"] .seg button { border-radius: 0; }
+[data-seg="invert"] .seg button.on { background: var(--text); color: var(--panel); box-shadow: none; }
 
-/* on/off buttons with a lamp */
+/* on/off switches: a lamp, or (lamps off) filled when on */
 button.led { display: inline-flex; align-items: center; gap: 7px; }
 button.led::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); flex: none; }
 button.led.on { background: var(--raise); color: var(--text); border-color: var(--line-strong); }
 button.led.on::before { background: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), 0 0 8px var(--accent); }
+[data-lamps="off"] button.led::before { display: none; }
+[data-lamps="off"] button.led.on { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); }
 
 .meter { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; border: 1px solid var(--line); }
 .meter > div { height: 100%; width: 0; background: var(--line-strong); transition: width 40ms linear; }
@@ -123,3 +90,7 @@ button.led.on::before { background: var(--accent); box-shadow: 0 0 0 2px var(--a
 .popover .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 .popover .row .label { min-width: 72px; }
 .popover button { height: 26px; padding: 0 8px; font-size: 12px; }
+
+/* the style picker (header) */
+.stylepick { display: inline-flex; align-items: center; gap: 6px; }
+.stylepick select { height: 30px; }

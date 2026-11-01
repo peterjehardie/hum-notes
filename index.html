@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hum Notes</title>
 <link rel="stylesheet" href="theme.css">
+<script src="themes.js"></script>
 <style>
 /* ---------- app shell: header, transport, then the work area fills the rest of the window ---------- */
 html, body { height: 100%; }
@@ -12,42 +13,45 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 .spacer { flex: 1; }
 
 .topbar { display: flex; align-items: center; gap: 14px; padding: 10px 14px 8px; min-width: 0; }
-.brand { display: flex; align-items: center; gap: 9px; font: 700 16px/1 var(--ui); letter-spacing: -0.01em; }
-.brand svg { width: 26px; height: 26px; flex: none; }
-.brand .sub { font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.brand { display: flex; align-items: center; gap: 9px; }
+.brand span { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 21px; line-height: 1; letter-spacing: -0.01em; }
+.brand svg { width: 24px; height: 24px; flex: none; }
 .navlink { color: var(--muted); font-size: 12.5px; text-decoration: none; }
 .navlink:hover { color: var(--accent-ink); }
 .iconbtn { width: 30px; padding: 0; font-weight: 700; }
 
 /* transport: record on the left, playback in the middle, level and messages on the right */
 .transport {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 12px 10px; padding: 9px 12px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 12px 10px; padding: 4px 4px 0;
 }
+[data-cards="border"] .transport { padding: 9px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); }
+.editor, .inspector { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); min-height: 0; min-width: 0; }
+[data-cards="shadow"] .editor, [data-cards="shadow"] .inspector { border-color: transparent; box-shadow: var(--shadow-card); }
+[data-cards="flat"] .editor, [data-cards="flat"] .inspector { border-color: transparent; }
 .cluster { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
 .transport > .end { margin-left: auto; }
 .recbtn {
-  height: 40px; padding: 0 18px 0 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 9px;
+  height: 40px; padding: 0 18px 0 12px; border-radius: max(var(--r-ctl), min(20px, calc(var(--r-ctl) * 2))); display: inline-flex; align-items: center; gap: 9px;
   background: var(--rec); border-color: var(--rec); color: var(--on-rec); font-weight: 700; font-size: 14px; min-width: 132px;
 }
 .recbtn:hover:not(:disabled) { filter: brightness(1.07); border-color: var(--rec); }
 .recbtn .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--on-rec); flex: none; transition: border-radius 120ms; }
+[data-rec="quiet"] .recbtn:not(.on) { background: var(--raise); border-color: var(--line-strong); color: var(--text); }
+[data-rec="quiet"] .recbtn:not(.on) .dot { background: var(--rec); }
+[data-rec="quiet"] .recbtn:not(.on):hover { filter: none; border-color: var(--rec); }
 .recbtn.on .dot { border-radius: 3px; }
 .recbtn.on, .recbtn.on:hover { background: var(--rec); border-color: var(--rec); color: var(--on-rec); }
 .recbtn.on { animation: recpulse 1.4s ease-in-out infinite; }
 @keyframes recpulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rec) 55%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--rec) 0%, transparent); } }
-.playbtn { height: 40px; padding: 0 18px; border-radius: 20px; font-size: 14px; min-width: 96px; }
+.playbtn { height: 40px; padding: 0 18px; border-radius: max(var(--r-ctl), min(20px, calc(var(--r-ctl) * 2))); font-size: 14px; min-width: 96px; }
 .playbtn.on { background: var(--text); border-color: var(--text); color: var(--panel); }
-.meter-cluster { order: 5; flex: 1 1 100%; flex-wrap: nowrap; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+.meter-cluster { order: 5; flex: 1 1 100%; flex-wrap: nowrap; gap: 12px; padding: 8px 0 2px; border-top: 1px solid var(--line); }
 .meter-cluster .meter { width: 180px; flex: none; height: 6px; }
 .status { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); min-height: 17px; line-height: 1.35; }
-.status::before { content: '›'; font: 600 12px var(--mono); color: var(--accent-ink); margin-right: 7px; }
 #recMode button { padding: 0 9px; }
 
 /* ---------- work area ---------- */
 .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 344px; gap: 10px; padding: 0 12px 12px; min-height: 0; }
-.editor, .inspector { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); min-height: 0; min-width: 0; }
-
 .editor { display: flex; flex-direction: column; overflow: hidden; }
 .editor > .toolbar, .editor > .dock { flex: none; }
 .toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; flex-wrap: wrap; min-width: 0; }
@@ -62,12 +66,12 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 .zoom button { width: 30px; padding: 0; font: 600 14px var(--mono); }
 .zoom button#zoomFit { width: auto; padding: 0 9px; font: 500 12px var(--ui); }
 #degLegend { display: inline-flex; gap: 3px; align-items: center; }
-#degLegend i { font: normal 600 10.5px/1 var(--mono); width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--on-deg); }
+#degLegend i { font: normal 600 10.5px/1 var(--mono); width: 18px; height: 18px; border-radius: min(9px, var(--r-ctl)); display: inline-flex; align-items: center; justify-content: center; color: var(--on-deg); }
 
-.stage { position: relative; flex: 1 1 0; margin: 0 10px; background: var(--roll); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 200px; }
+.stage { position: relative; flex: 1 1 0; margin: 0 10px; background: var(--roll); border: 1px solid var(--line); border-radius: max(0px, calc(var(--r-panel) - 6px)); overflow: hidden; min-height: 200px; }
 .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
 .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; text-align: center; padding: 20px; }
-.empty b { font: 600 20px/1.2 var(--ui); letter-spacing: -0.01em; }
+.empty b { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
 .empty span { color: var(--muted); max-width: 440px; }
 .empty kbd { font: 600 11px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--raise); }
 
@@ -102,7 +106,7 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 .inspector { display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
 .tuner { padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--line); }
 .tuner-top { display: flex; align-items: flex-end; gap: 12px; min-height: 52px; }
-.note-big { font: 600 50px/0.9 var(--ui); letter-spacing: -0.03em; min-width: 82px; text-decoration: underline 5px var(--degc, transparent); text-underline-offset: 7px; text-decoration-skip-ink: none; }
+.note-big { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 52px; line-height: 0.9; letter-spacing: -0.02em; min-width: 82px; text-decoration: underline 5px var(--degc, transparent); text-underline-offset: 7px; text-decoration-skip-ink: none; }
 .note-big sub { font: 500 20px var(--mono); vertical-align: baseline; color: var(--muted); letter-spacing: 0; }
 .tuner-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-bottom: 2px; }
 .hz { font: 12px var(--mono); color: var(--muted); }
@@ -124,11 +128,12 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 
 .tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); }
 .tabs button { height: 32px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 0 10px; font-weight: 600; flex: 1; }
-.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
 .tabbody { overflow-y: auto; padding: 4px 14px 16px; scrollbar-width: thin; }
 .pane h3:first-child, .pane > p:first-child + div > h3:first-child { margin-top: 10px; }
-.pane h3 { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 16px 0 8px; display: flex; align-items: center; gap: 8px; }
-.pane h3::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.pane h3 { font-family: var(--h3-font); font-size: var(--h3-size); font-weight: var(--h3-weight); font-style: var(--h3-style); line-height: 1.1;
+  text-transform: var(--h3-case); letter-spacing: var(--h3-spacing); color: var(--text); margin: 18px 0 8px; display: flex; align-items: center; gap: 8px; }
+.pane h3::after { content: ''; flex: 1; height: 1px; background: var(--line); display: var(--h3-rule); }
 .field { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; margin: 7px 0; }
 .field > .label { line-height: 1.2; }
 .field > .ctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
@@ -148,7 +153,7 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 /* shortcuts */
 dialog { border: 1px solid var(--line-strong); border-radius: var(--r-panel); background: var(--raise); color: var(--text); box-shadow: var(--shadow-pop); padding: 18px 20px; max-width: min(520px, calc(100vw - 24px)); }
 dialog::backdrop { background: rgba(0,0,0,0.35); }
-dialog h2 { font: 700 16px var(--ui); margin: 0 0 10px; }
+dialog h2 { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 22px; margin: 0 0 10px; }
 dialog table { border-collapse: collapse; width: 100%; font-size: 13px; }
 dialog td { padding: 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
 dialog td:first-child { width: 150px; }
@@ -182,7 +187,7 @@ dialog form { text-align: right; margin-top: 12px; }
 }
 @media (max-width: 520px) {
   .topbar { gap: 10px; }
-  .brand .sub, .navlink { display: none; }
+  .navlink, .stylepick .label { display: none; }
   .recbtn, .playbtn { flex: 1; }
   #recMode, #hear { width: 100%; }
   #recMode button, #hear button { flex: 1; padding: 0 4px; font-size: 12px; }
@@ -197,12 +202,13 @@ dialog form { text-align: right; margin-top: 12px; }
 <header class="topbar">
   <div class="brand">
     <svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--text)"/><path d="M5 15c2-6 3.5-6 5 0s3 6 5 0 3.5-6 6 0" fill="none" stroke="var(--panel)" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="15" r="2.2" fill="var(--rec)"/></svg>
-    <span>Hum Notes</span><span class="sub">hum · score · arrange</span>
+    <span>Hum Notes</span>
   </div>
   <a class="navlink" href="lab.html" title="Record your voice part by part to build your own synth voice">Voice lab ↗</a>
   <div class="spacer"></div>
   <button class="iconbtn" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
-  <div class="seg" id="theme" role="group" aria-label="Theme">
+  <label class="stylepick" title="Try another look (T cycles through them)"><span class="label">Style</span><select id="styleSel" aria-label="Style"></select></label>
+  <div class="seg" id="theme" role="group" aria-label="Tone">
     <button data-v="light">Light</button><button data-v="mid">Mid</button><button data-v="dark">Dark</button>
   </div>
 </header>
@@ -442,6 +448,7 @@ dialog form { text-align: right; margin-top: 12px; }
     <tr><td><kbd>D</kbd> <kbd>M</kbd> <kbd>H</kbd></td><td>Drone, click, hear yourself live</td></tr>
     <tr><td>Score edits</td><td><kbd>Delete</kbd> · arrows nudge (<kbd>Shift</kbd>: octave / beat) · <kbd>S</kbd> split · <kbd>J</kbd> join · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>D</kbd>/<kbd>A</kbd> · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></td></tr>
     <tr><td><kbd>Esc</kbd></td><td>Clear selection and start marker</td></tr>
+    <tr><td><kbd>T</kbd> · <kbd>Shift</kbd>+<kbd>T</kbd></td><td>Next style · next tone (light, mid, dark)</td></tr>
     <tr><td><kbd>?</kbd></td><td>This list</td></tr>
   </table>
   <form method="dialog"><button class="primary">Close</button></form>
@@ -453,7 +460,7 @@ dialog form { text-align: right; margin-top: 12px; }
   if (HOSTED) document.querySelector('.navlink[href="lab.html"]').hidden = true;
   // live reload: poll the page's files and reload when one changes (kept here so it outlives script errors)
   if (!HOSTED) (async function watch() {
-    const files = ['index.html', 'theme.css', 'app.js', 'dsp.js', 'voicesynth.js', 'profilesynth.js', 'motif.js', 'arrange.js', 'form.js', 'rhythm2.js', 'sampler.js', 'rhythm.js', 'pitch-worklet.js'], seen = {};
+    const files = ['index.html', 'theme.css', 'themes.js', 'app.js', 'dsp.js', 'voicesynth.js', 'profilesynth.js', 'motif.js', 'arrange.js', 'form.js', 'rhythm2.js', 'sampler.js', 'rhythm.js', 'pitch-worklet.js'], seen = {};
     let pending = false;
     for (;;) {
       for (const f of files) {

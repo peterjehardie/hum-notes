@@ -28,7 +28,7 @@ for (let i = 0; i < 12; i++) $('root').add(new Option(NAMES[i], i));
 $('root').value = '2';
 
 function saveSettings() {
-  const o = { v: 4, theme: document.documentElement.dataset.theme };
+  const o = { v: 4, theme: document.documentElement.dataset.theme, look: S.style };
   for (const f of FIELDS) o[f] = $(f).value;
   for (const k of SEGS) o[k] = S[k];
   o.acc = S.acc; o.loop = S.loop;
@@ -39,14 +39,28 @@ function setSeg(key, v) {
   const el = document.querySelector(`.seg[data-key="${key}"]`);
   for (const b of el.children) b.classList.toggle('on', b.dataset.v === v);
 }
-let colors = {};
-function applyTheme(v) {
-  document.documentElement.dataset.theme = v;
-  for (const b of $('theme').children) b.classList.toggle('on', b.dataset.v === v);
+let colors = {}, themeReady = false;
+// A look is a style (type, shapes, palette: themes.js) in a tone (light, mid, dark).
+for (const [id, st] of Object.entries(HumThemes.STYLES)) { const o = new Option(st.name, id); o.title = st.note; $('styleSel').add(o); }
+function applyTheme(v, style = S.style) {
+  const r = HumThemes.apply(style, v);
+  S.style = r.style;
+  for (const b of $('theme').children) b.classList.toggle('on', b.dataset.v === r.tone);
+  $('styleSel').value = r.style;
   const cs = getComputedStyle(document.documentElement);
+  colors.font = cs.getPropertyValue('--ui').trim() || 'sans-serif';
   for (const k of ['text', 'muted', 'accent', 'rec', 'roll', 'panel', 'raise', 'line', 'lane-black', 'lane-root', 'lane-fifth', 'trace', 'note', 'note-edge', 'grid', 'bar', 'wave', 'bk-note', 'bk-edge', 'bk-low', 'bk-low-edge',
     'deg0', 'deg1', 'deg2', 'deg3', 'deg4', 'deg5', 'deg6', 'deg7', 'on-deg', 'layer1', 'layer2', 'layer3', 'layer4'])
     colors[k] = cs.getPropertyValue('--' + k).trim();
+  // chips and the legend carry colours of their own
+  if (themeReady) { renderLegend(); renderNotes(); renderParts(); }
+}
+const TONES = ['light', 'mid', 'dark'];
+function stepLook(styleStep, toneStep) {
+  const ids = Object.keys(HumThemes.STYLES), tone = document.documentElement.dataset.theme;
+  const style = ids[(ids.indexOf(S.style) + styleStep + ids.length) % ids.length], t = TONES[(TONES.indexOf(tone) + toneStep + 3) % 3];
+  applyTheme(t, style); saveSettings();
+  $('status').textContent = `Style: ${HumThemes.STYLES[style].name} (${HumThemes.STYLES[style].note}) · ${t}`;
 }
 (function loadSettings() {
   let o = {};
@@ -59,10 +73,11 @@ function applyTheme(v) {
   if (o.acc) Object.assign(S.acc, o.acc);
   S.loop = !!o.loop; $('loopBtn').classList.toggle('on', S.loop);
   for (const b of $('accToggles').children) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
-  applyTheme(o.theme || 'light');
+  applyTheme(o.theme || 'light', o.look || 'classic');
   showValues();
 })();
 $('theme').onclick = e => { if (e.target.dataset.v) { applyTheme(e.target.dataset.v); saveSettings(); } };
+$('styleSel').onchange = () => { applyTheme(document.documentElement.dataset.theme, $('styleSel').value); saveSettings(); };
 document.addEventListener('change', saveSettings);
 document.addEventListener('input', saveSettings);
 
@@ -807,7 +822,7 @@ function drawGroove() {
   const gut = 96, top = 30, rowH = Math.min(70, (H - top - 20) / G_LANES.length), cw = (W - gut - 10) / g.length;
   S.lastGrid = { gut, top, rowH, cw };
   const playing = grooveClock.now();
-  g2.font = '12px "Space Grotesk", sans-serif'; g2.textBaseline = 'middle';
+  g2.font = `12px ${colors.font}`; g2.textBaseline = 'middle';
   for (let s = 0; s <= g.length; s++) {
     const x = gut + s * cw;
     g2.fillStyle = s % (g.steps * g.beats) === 0 ? colors.bar : s % g.steps === 0 ? colors.muted : colors.grid;
@@ -3071,7 +3086,7 @@ function draw() {
 
   g2.clearRect(0, 0, W, H);
   const root = sv && scoreKey() ? scoreKey().root : rootPc(), fifth = (root + 7) % 12;
-  g2.font = '11px "Space Grotesk", sans-serif'; g2.textBaseline = 'middle';
+  g2.font = `11px ${colors.font}`; g2.textBaseline = 'middle';
   for (let m = Math.floor(lo) - 1; m <= Math.ceil(hi) + 1; m++) {
     const pc = pcOf(m), y = Y(m + 0.5);
     const fill = pc === root ? colors['lane-root'] : pc === fifth ? colors['lane-fifth'] : [1, 3, 6, 8, 10].includes(pc) ? colors['lane-black'] : null;
@@ -3138,9 +3153,9 @@ function draw() {
     if (drumH) {
       const lanes = { hat: 0, snare: 1, kick: 2 }, lh = drumH / 3;
       g2.fillStyle = colors.grid; g2.fillRect(gut, PH, W - gut, 1);
-      g2.font = '9px "Space Grotesk", sans-serif'; g2.fillStyle = colors.muted;
+      g2.font = `9px ${colors.font}`; g2.fillStyle = colors.muted;
       g2.fillText('shk', 8, PH + lh * 0.5); g2.fillText('snr', 8, PH + lh * 1.5); g2.fillText('kick', 8, PH + lh * 2.5);
-      g2.font = '11px "Space Grotesk", sans-serif';
+      g2.font = `11px ${colors.font}`;
       for (const e of bev) {
         if (!(e.kind in lanes) || e.t < t0 || e.t > t1) continue;
         g2.fillStyle = e.kind === 'kick' ? colors['bk-low-edge'] : e.kind === 'snare' ? colors['note-edge'] : colors['bk-edge'];
@@ -3162,8 +3177,8 @@ function draw() {
       const x = X(beatTime(sec.from));
       if (x < gut - 1 || x > W) continue;
       g2.fillStyle = colors.text; g2.globalAlpha = 0.55; g2.fillRect(x - 1, 0, 2, PH); g2.globalAlpha = 1;
-      g2.font = '600 12px "Space Grotesk", sans-serif'; g2.fillText(sec.name + (sec.mood && MOODS[sec.mood] ? ' · ' + sec.mood : ''), x + 5, 24);
-      g2.font = '11px "Space Grotesk", sans-serif';
+      g2.font = `600 12px ${colors.font}`; g2.fillText(sec.name + (sec.mood && MOODS[sec.mood] ? ' · ' + sec.mood : ''), x + 5, 24);
+      g2.font = `11px ${colors.font}`;
     }
     // the clean score: one block per note on the beat grid
     for (const n of S.take.score.notes) {
@@ -3359,9 +3374,9 @@ function draw() {
     const A = S.recArm, xa = Math.max(gut, X(A.from)), xm = X(A.marker);
     g2.fillStyle = colors.rec; g2.globalAlpha = 0.07; g2.fillRect(xa, 0, Math.max(0, xm - xa), PH); g2.globalAlpha = 1;
     g2.fillRect(xm - 1, 0, 2, PH);
-    g2.font = '600 11px "JetBrains Mono", monospace'; const tag = A.kind === 'layer' ? 'REC LAYER' : A.kind === 'next' ? 'REC NEXT PART' : 'REC REDO', tw = g2.measureText(tag).width;
+    g2.font = `600 11px ${colors.font}`; const tag = A.kind === 'layer' ? 'REC LAYER' : A.kind === 'next' ? 'REC NEXT PART' : 'REC REDO', tw = g2.measureText(tag).width;
     g2.fillText(tag, xm + 6 + tw < W - 4 ? xm + 6 : xm - 6 - tw, PH - 10);
-    g2.font = '11px "Space Grotesk", sans-serif';
+    g2.font = `11px ${colors.font}`;
     g2.strokeStyle = colors.rec; g2.lineWidth = 2.5; g2.lineJoin = 'round'; g2.beginPath();
     let lp = null;
     for (let i = S.points.length - 1; i >= 0 && S.points[i].t >= S.recTake.start; i--) {
@@ -3411,7 +3426,7 @@ function drawSpectrum(head) {
   const fLo = 50, fHi = 6000, PH = H - 14;
   const X = f => Math.log(f / fLo) / Math.log(fHi / fLo) * W;
   const Yd = db => PH - Math.max(0, Math.min(1, (db + 100) / 75)) * PH;
-  sg.font = '10px "Space Grotesk", sans-serif'; sg.textBaseline = 'top'; sg.fillStyle = colors.muted;
+  sg.font = `10px ${colors.font}`; sg.textBaseline = 'top'; sg.fillStyle = colors.muted;
   for (const [f, s] of [[100, '100'], [1000, '1k'], [4000, '4k']]) { sg.fillRect(X(f), PH, 1, 3); sg.fillText(s, X(f) - 6, PH + 3); }
 
   let f0 = null, levels = null;
@@ -3492,8 +3507,11 @@ addEventListener('keydown', e => {
   else if (e.key === '-' || e.key === '_') zoomBy(1 / 1.6);
   else if (e.key === '0') S.view.zoom = null;
   else if (e.key === '?') $('keysDlg').showModal();
+  else if (e.key === 't') stepLook(1, 0);
+  else if (e.key === 'T') stepLook(0, 1);
   else if (e.key === 'd') setDrone(!S.droneOn);
   else if (e.key === 'm') setMetro(!metro.on);
   else if (e.key === 'h') setMonitor(!S.monitorOn);
 });
+themeReady = true;
 updateButtons(); renderParts();

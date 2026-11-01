@@ -11,3 +11,9 @@ Non-binding exploration log: a record of what was tried and dropped. Nothing her
 - First layer was named "Layer 2" (counting the main take as 1); renamed to start at "Layer 1" beside "Main".
 - Fonts DM Sans and Source Serif 4 dropped in the move to Space Grotesk + JetBrains Mono.
 - Test method used: Chromium with a fake microphone fed by a synthetic hummed WAV (D major, 100 bpm), driven by Playwright through the real buttons and keys.
+
+## 2026-11-01 · Styles
+
+- The Studio direction (electric blue, mono capital labels, lamp switches, bordered panels) read as too technical; wanted something classier and simpler. Not deleted: kept as one of six styles behind a style picker, so looks can be compared side by side. Classic (ink on paper, Instrument Serif headings, black main buttons) became the default.
+- Colours per style were first written out by hand (40 tokens × 3 tones); replaced by themes.js working out the derived colours from six base colours per tone, with text pulled darker or lighter until it reaches 4.5:1 contrast.
+- The saved look first used the settings key `style`, which the Score tab's Style slider already used; the slider overwrote it on every save. Saved as `look` instead.
