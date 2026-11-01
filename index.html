@@ -4,436 +4,448 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Hum Notes</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-@font-face { font-family: 'DM Sans'; src: url(fonts/dmsans.woff2) format('woff2'); font-weight: 100 1000; font-display: swap; }
-@font-face { font-family: 'Source Serif 4'; src: url(fonts/sourceserif4.woff2) format('woff2'); font-weight: 200 900; font-display: swap; }
-
-:root, [data-theme="light"] {
-  --bg: #FAF9F5; --surface: #F0EEE6; --raise: #FFFFFF; --text: #141413; --muted: #6B6A63;
-  --line: #E3E0D6; --accent: #D97757; --accent-strong: #C15F3C; --on-accent: #FFFFFF;
-  --lane-black: rgba(20,20,19,0.035); --lane-root: rgba(217,119,87,0.16); --lane-fifth: rgba(217,119,87,0.07);
-  --trace: #C15F3C; --note: rgba(217,119,87,0.30); --note-edge: #C15F3C; --grid: rgba(20,20,19,0.07);
-  --bar: rgba(20,20,19,0.18); --wave: rgba(20,20,19,0.13);
-  --bk-note: rgba(20,20,19,0.08); --bk-edge: #A8A497; --bk-low: rgba(20,20,19,0.14); --bk-low-edge: #6B6A63;
-  --deg1: #CC785C; --deg2: #6A9BCC; --deg3: #C4935F; --deg4: #8E8AB8; --deg5: #788C5D; --deg6: #5E9C8C; --deg7: #C46686; --deg0: #A8A497;
-}
-[data-theme="mid"] {
-  --bg: #A6A297; --surface: #9A968B; --raise: #B3AFA4; --text: #161513; --muted: #3F3D38;
-  --line: #8C887E; --accent: #B9573A; --accent-strong: #9A4329; --on-accent: #FFFFFF;
-  --lane-black: rgba(20,20,19,0.06); --lane-root: rgba(154,67,41,0.20); --lane-fifth: rgba(154,67,41,0.09);
-  --trace: #7E3420; --note: rgba(154,67,41,0.28); --note-edge: #8A3A22; --grid: rgba(20,20,19,0.09);
-  --bar: rgba(20,20,19,0.25); --wave: rgba(20,20,19,0.16);
-  --bk-note: rgba(20,20,19,0.10); --bk-edge: #5E5B54; --bk-low: rgba(20,20,19,0.20); --bk-low-edge: #2E2C28;
-  --deg1: #A9502F; --deg2: #3F6E9E; --deg3: #94652F; --deg4: #5F5A8E; --deg5: #55693B; --deg6: #2F6E60; --deg7: #9A3D5E; --deg0: #6B6860;
-}
-[data-theme="dark"] {
-  --bg: #1F1E1D; --surface: #262624; --raise: #30302E; --text: #F0EEE6; --muted: #A3A097;
-  --line: #3A3936; --accent: #D97757; --accent-strong: #E58B6D; --on-accent: #141413;
-  --lane-black: rgba(0,0,0,0.22); --lane-root: rgba(217,119,87,0.17); --lane-fifth: rgba(217,119,87,0.07);
-  --trace: #EE9677; --note: rgba(217,119,87,0.30); --note-edge: #E58B6D; --grid: rgba(240,238,230,0.06);
-  --bar: rgba(240,238,230,0.16); --wave: rgba(240,238,230,0.12);
-  --bk-note: rgba(240,238,230,0.07); --bk-edge: #6E6B63; --bk-low: rgba(240,238,230,0.13); --bk-low-edge: #A3A097;
-  --deg1: #E58B6D; --deg2: #8DB6E0; --deg3: #E0B98E; --deg4: #ADA9D6; --deg5: #A3B886; --deg6: #8CC2B3; --deg7: #E08AA8; --deg0: #8C887E;
-}
-
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-html { height: 100%; }
-body {
-  background: var(--bg); color: var(--text);
-  font: 14px/1.4 'DM Sans', system-ui, sans-serif;
-  display: grid; grid-template-rows: auto auto auto auto minmax(420px, 1fr) auto; min-height: 100vh; box-sizing: border-box; gap: 12px; padding: 14px 16px 16px;
-}
-header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-h1 { font: 600 24px/1 'Source Serif 4', Georgia, serif; margin: 0; letter-spacing: -0.01em; }
+/* ---------- app shell: header, transport, then the work area fills the rest of the window ---------- */
+html, body { height: 100%; }
+body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
 .spacer { flex: 1; }
 
-.bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
-.group {
-  display: flex; align-items: center; gap: 8px; padding: 6px 10px; flex-wrap: wrap;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-}
-.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.sub { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.topbar { display: flex; align-items: center; gap: 14px; padding: 10px 14px 8px; min-width: 0; }
+.brand { display: flex; align-items: center; gap: 9px; font: 700 16px/1 var(--ui); letter-spacing: -0.01em; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.brand .sub { font: 500 10px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.navlink { color: var(--muted); font-size: 12.5px; text-decoration: none; }
+.navlink:hover { color: var(--accent-ink); }
+.iconbtn { width: 30px; padding: 0; font-weight: 700; }
 
-button, select, input[type=number] {
-  font: inherit; color: var(--text); background: var(--raise);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer;
+/* transport: record on the left, playback in the middle, level and messages on the right */
+.transport {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin: 0 12px 10px; padding: 9px 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel);
 }
-input[type=number] { width: 62px; padding: 6px 6px; cursor: text; font-variant-numeric: tabular-nums; }
-button:hover, select:hover { border-color: var(--muted); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
-button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
-button.big { font-size: 16px; padding: 9px 22px; border-radius: 10px; }
-button.rec.on { background: var(--accent-strong); border-color: var(--accent-strong); color: var(--on-accent); }
-button:disabled { opacity: 0.45; cursor: default; }
-button.small { padding: 3px 7px; font-size: 12px; }
-select { padding: 6px 8px; }
-input[type=range] { accent-color: var(--accent); width: 90px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; border-radius: 0; padding: 5px 10px; background: var(--raise); }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button.on { background: var(--text); color: var(--bg); }
-.tempo { font-variant-numeric: tabular-nums; min-width: 74px; text-align: right; }
-.tempo small { color: var(--muted); }
+.cluster { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.transport > .end { margin-left: auto; }
+.recbtn {
+  height: 40px; padding: 0 18px 0 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 9px;
+  background: var(--rec); border-color: var(--rec); color: var(--on-rec); font-weight: 700; font-size: 14px; min-width: 132px;
+}
+.recbtn:hover:not(:disabled) { filter: brightness(1.07); border-color: var(--rec); }
+.recbtn .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--on-rec); flex: none; transition: border-radius 120ms; }
+.recbtn.on .dot { border-radius: 3px; }
+.recbtn.on, .recbtn.on:hover { background: var(--rec); border-color: var(--rec); color: var(--on-rec); }
+.recbtn.on { animation: recpulse 1.4s ease-in-out infinite; }
+@keyframes recpulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--rec) 55%, transparent); } 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--rec) 0%, transparent); } }
+.playbtn { height: 40px; padding: 0 18px; border-radius: 20px; font-size: 14px; min-width: 96px; }
+.playbtn.on { background: var(--text); border-color: var(--text); color: var(--panel); }
+.meter-cluster { order: 5; flex: 1 1 100%; flex-wrap: nowrap; gap: 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+.meter-cluster .meter { width: 180px; flex: none; height: 6px; }
+.status { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); min-height: 17px; line-height: 1.35; }
+.status::before { content: '›'; font: 600 12px var(--mono); color: var(--accent-ink); margin-right: 7px; }
+#recMode button { padding: 0 9px; }
 
-main { display: grid; grid-template-columns: 220px 1fr; gap: 12px; min-height: 0; }
-.readout {
-  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
-  padding: 18px 16px; display: flex; flex-direction: column; gap: 14px;
-}
-.note-big { font: 600 72px/1 'Source Serif 4', Georgia, serif; letter-spacing: -0.02em; min-height: 72px; }
-.note-big sub { font-size: 30px; vertical-align: baseline; color: var(--muted); font-weight: 500; }
-.hz { color: var(--muted); font-variant-numeric: tabular-nums; }
-.interval { font-size: 16px; }
-.cents { position: relative; height: 30px; }
-.cents .track { position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px; background: var(--line); }
-.cents .mid { position: absolute; left: 50%; top: 5px; width: 2px; height: 20px; margin-left: -1px; background: var(--muted); }
-.cents .needle {
-  position: absolute; top: 3px; width: 10px; height: 24px; margin-left: -5px; border-radius: 5px;
-  background: var(--accent); left: 50%; transition: left 40ms linear, background 80ms;
-}
-.cents .needle.good { background: var(--text); }
-.cents .scale { position: absolute; top: 28px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); }
-.meter { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.meter > div { height: 100%; width: 0; background: var(--muted); }
-.meter > div.voiced { background: var(--accent); }
-.beats { display: flex; gap: 6px; min-height: 10px; }
-.beats i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
-.beats i.hit { background: var(--accent); }
-.hero { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.hero button.big { min-width: 150px; }
-.devices { display: flex; flex-direction: column; gap: 4px; }
-.devices select { max-width: 230px; font-size: 12px; padding: 3px 6px; }
-.hero #save { min-width: 90px; }
-.backing { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.backing[hidden], #chords[hidden] { display: none; }
-#shape { flex-basis: 100%; }
-#shape > .bar { margin-top: 8px; }
-.toggles { display: inline-flex; gap: 4px; }
-.toggles button { padding: 4px 10px; }
-#jam { min-width: 140px; }
-.chip.chord { border-color: var(--accent); }
-.chip.chord.set { background: var(--note); }
-.chip.chord.none b { color: var(--muted); }
-.chip.section { border-color: var(--text); }
-.chip.section b { margin-right: 4px; }
-#sections:empty { display: none; }
-.popover { position: fixed; z-index: 50; background: var(--raise); color: var(--text); border: 1px solid var(--line);
-  border-radius: 12px; padding: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.18); max-width: 360px; display: flex; flex-direction: column; gap: 8px; }
-.popover .row { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
-.popover .row .label { min-width: 70px; }
-.popover button { padding: 3px 8px; font-size: 12px; }
-.popover button.on { background: var(--text); color: var(--bg); }
-.chip.chord b { color: var(--accent-strong); }
-.chip.chord.picked { background: var(--note); }
-.linectl { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; flex-basis: 100%; }
-.linectl[hidden] { display: none; }
-.navlink { color: var(--accent-strong); font-size: 14px; text-decoration: none; border-bottom: 1px solid currentColor; }
-.scorebar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.transpose { display: inline-flex; gap: 3px; align-items: center; }
-.transpose input { width: 52px; text-align: center; padding: 4px; }
-#scoreInfo { color: var(--text); font-size: 13px; }
-.chip.chromatic b { color: var(--accent-strong); }
-.chip.grace { transform: scale(0.85); opacity: 0.85; }
-.chip.slur { border-right-style: dashed; }
-.livekey { font-size: 13px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 24px; }
-.livekey b { color: var(--text); }
-#scoreInfo button.small { margin-left: 4px; }
-.chip[data-deg] { border-left: 4px solid var(--degc); }
+/* ---------- work area ---------- */
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) 344px; gap: 10px; padding: 0 12px 12px; min-height: 0; }
+.editor, .inspector { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); min-height: 0; min-width: 0; }
+
+.editor { display: flex; flex-direction: column; overflow: hidden; }
+.editor > .toolbar, .editor > .dock { flex: none; }
+.toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 10px; flex-wrap: wrap; min-width: 0; }
+.toolbar.sub { padding-top: 0; }
+.toolbar .info { font: 12px var(--mono); color: var(--text); display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.toolbar .info button.small { height: 22px; font: 500 11.5px var(--ui); }
+.toolbar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 2px 2px; }
+.toolbar .sub { font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; gap: 6px; }
+.toolbar .sub input[type=range] { width: 80px; min-width: 60px; }
+#edInfo { font-size: 12px; color: var(--muted); }
+.zoom { display: inline-flex; gap: 2px; }
+.zoom button { width: 30px; padding: 0; font: 600 14px var(--mono); }
+.zoom button#zoomFit { width: auto; padding: 0 9px; font: 500 12px var(--ui); }
 #degLegend { display: inline-flex; gap: 3px; align-items: center; }
-#degLegend i { font-style: normal; font-size: 11px; font-weight: 600; width: 18px; height: 18px; border-radius: 9px;
-  display: inline-flex; align-items: center; justify-content: center; color: #FAF9F5; }
-.hero-meter { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 6px; }
-.hero-meter .meter { height: 10px; border-radius: 5px; }
-.hero-meter .status { margin: 0; font-size: 13px; }
-details > summary { cursor: pointer; color: var(--muted); font-size: 13px; width: max-content; list-style: none; }
-details > summary::before { content: '▸ '; }
-details[open] > summary::before { content: '▾ '; }
-details[open] > summary { margin-bottom: 10px; }
-.spec { margin-top: auto; height: 120px; cursor: default; border-top: 1px solid var(--line); padding-top: 4px; }
-.val { font-variant-numeric: tabular-nums; min-width: 32px; color: var(--text); }
-.status { font-size: 12px; color: var(--muted); margin-top: auto; }
+#degLegend i { font: normal 600 10.5px/1 var(--mono); width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; color: var(--on-deg); }
 
-.stage { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; min-height: 260px; }
-canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
+.stage { position: relative; flex: 1 1 0; margin: 0 10px; background: var(--roll); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; min-height: 200px; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+.empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; text-align: center; padding: 20px; }
+.empty b { font: 600 20px/1.2 var(--ui); letter-spacing: -0.01em; }
+.empty span { color: var(--muted); max-width: 440px; }
+.empty kbd { font: 600 11px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--raise); }
 
-footer { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
-footer .notes { flex: none; align-items: flex-start; }
-#ptracks { flex-direction: column; flex-wrap: nowrap; max-height: 190px; }
-#ptracks:empty { display: none; }
-.prow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+/* the dock under the roll: one scrolling line per kind of thing */
+.dock { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 6px; max-height: 42%; overflow-y: auto; }
+.dock .row { display: grid; grid-template-columns: 70px minmax(0, 1fr); align-items: center; gap: 8px; }
+.dock .row:has(> .chips:empty), .dock .row:has(> .chips[hidden]), .dock .parts-row:has(#parts:empty) { display: none; }
+.chips > .inline { display: contents; }
+#harmRow button { margin-left: auto; }
+.chips { display: flex; gap: 5px; overflow-x: auto; padding: 2px 0 4px; scrollbar-width: thin; align-items: center; }
+.chips > button.small { flex: none; }
+.chip[data-deg] { box-shadow: inset 3px 0 0 var(--degc); padding-left: 11px; }
+.chip.chromatic b { color: var(--accent-ink); }
+.chip.grace { opacity: 0.8; font-size: 11px; }
+.chip.slur { border-right-style: dashed; }
+.chip.chord b { color: var(--accent-ink); }
+.chip.chord.picked, .chip.chord.set { background: var(--accent-soft); border-color: var(--accent); }
+.chip.chord.none b { color: var(--muted); }
+.chip.section b { margin-right: 2px; font-family: var(--mono); }
+.chip.part { align-items: center; }
+.chip.part .sw { width: 10px; height: 10px; border-radius: 3px; background: var(--partc, var(--accent)); align-self: center; }
+.chip.part.off { opacity: 0.45; }
+.chip.part.off b { text-decoration: line-through; }
+.ptracks { display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; }
+.ptracks:empty { display: none; }
+.prow { display: flex; gap: 5px; overflow-x: auto; align-items: center; padding-bottom: 2px; }
+.prow .chip { flex: none; }
 .prow.muted .chip { opacity: 0.4; }
-.prow.muted .chip.partial { text-decoration: line-through; }
-.chip.partial { min-width: 170px; }
-.chip.partial { border-style: dashed; }
-.chip.muted { opacity: 0.4; text-decoration: line-through; }
-.notes { flex: 1; display: flex; gap: 6px; flex-wrap: wrap; max-height: 92px; overflow-y: auto; }
-.chip {
-  background: var(--raise); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
-  font-variant-numeric: tabular-nums; cursor: pointer; white-space: nowrap;
-}
-.chip b { font-weight: 600; }
-.chip em { font-style: normal; color: var(--accent-strong); margin-left: 3px; }
-.chip span { color: var(--muted); font-size: 12px; margin-left: 4px; }
-.chip:hover { border-color: var(--accent); }
+.chip.partial { min-width: 150px; border-style: dashed; }
 
-@media (max-width: 760px) {
-  main { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-  .note-big { font-size: 48px; min-height: 48px; }
+/* ---------- inspector: tuner on top, then tabs ---------- */
+.inspector { display: grid; grid-template-rows: auto auto minmax(0, 1fr); overflow: hidden; }
+.tuner { padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--line); }
+.tuner-top { display: flex; align-items: flex-end; gap: 12px; min-height: 52px; }
+.note-big { font: 600 50px/0.9 var(--ui); letter-spacing: -0.03em; min-width: 82px; text-decoration: underline 5px var(--degc, transparent); text-underline-offset: 7px; text-decoration-skip-ink: none; }
+.note-big sub { font: 500 20px var(--mono); vertical-align: baseline; color: var(--muted); letter-spacing: 0; }
+.tuner-meta { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding-bottom: 2px; }
+.hz { font: 12px var(--mono); color: var(--muted); }
+.interval { font-size: 12.5px; }
+.cents { position: relative; height: 26px; }
+.cents .track { position: absolute; left: 0; right: 0; top: 9px; height: 4px; border-radius: 2px; background: var(--sunk); border: 1px solid var(--line); }
+.cents .mid { position: absolute; left: 50%; top: 3px; width: 2px; height: 16px; margin-left: -1px; background: var(--muted); }
+.cents .needle { position: absolute; top: 2px; width: 6px; height: 18px; margin-left: -3px; border-radius: 3px; background: var(--accent); left: 50%; transition: left 40ms linear, background 80ms; }
+.cents .needle.good { background: var(--ok); }
+.cents .scale { position: absolute; top: 20px; left: 0; right: 0; display: flex; justify-content: space-between; font: 9.5px var(--mono); color: var(--muted); }
+.livekey { font-size: 12px; color: var(--muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; min-height: 0; }
+.livekey:empty { display: none; }
+.livekey b { color: var(--text); }
+.beats { display: flex; gap: 5px; }
+.beats:empty { display: none; }
+.beats i { width: 9px; height: 9px; border-radius: 2px; background: var(--sunk); border: 1px solid var(--line); }
+.beats i.hit { background: var(--accent); border-color: var(--accent); }
+.spec { display: block; width: 100%; height: 62px; }
+
+.tabs { display: flex; gap: 2px; padding: 8px 10px 0; border-bottom: 1px solid var(--line); }
+.tabs button { height: 32px; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; color: var(--muted); padding: 0 10px; font-weight: 600; flex: 1; }
+.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+.tabbody { overflow-y: auto; padding: 4px 14px 16px; scrollbar-width: thin; }
+.pane h3:first-child, .pane > p:first-child + div > h3:first-child { margin-top: 10px; }
+.pane h3 { font: 500 10px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 16px 0 8px; display: flex; align-items: center; gap: 8px; }
+.pane h3::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.field { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 8px; margin: 7px 0; }
+.field > .label { line-height: 1.2; }
+.field > .ctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+.field > .ctl > select { flex: 1; min-width: 0; }
+.field .seg { width: 100%; }
+.field .seg button { flex: 1 1 auto; }
+.field output, .field .val { font: 11.5px var(--mono); color: var(--text); min-width: 38px; text-align: right; }
+.hint { font-size: 12px; color: var(--muted); margin: 6px 0; line-height: 1.45; }
+.toggles { display: flex; flex-wrap: wrap; gap: 5px; }
+.toggles button { height: 28px; padding: 0 9px; }
+.btnrow { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.transpose { display: inline-flex; gap: 3px; align-items: center; }
+.transpose input { width: 50px; text-align: center; }
+#tempo { font: 12px var(--mono); }
+#tempo small { color: var(--muted); font-family: var(--ui); }
+
+/* shortcuts */
+dialog { border: 1px solid var(--line-strong); border-radius: var(--r-panel); background: var(--raise); color: var(--text); box-shadow: var(--shadow-pop); padding: 18px 20px; max-width: min(520px, calc(100vw - 24px)); }
+dialog::backdrop { background: rgba(0,0,0,0.35); }
+dialog h2 { font: 700 16px var(--ui); margin: 0 0 10px; }
+dialog table { border-collapse: collapse; width: 100%; font-size: 13px; }
+dialog td { padding: 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+dialog td:first-child { width: 150px; }
+dialog kbd { font: 600 11px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--panel); }
+dialog form { text-align: right; margin-top: 12px; }
+
+/* ---------- smaller windows ---------- */
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) 300px; }
+  #degLegend, #edInfo { display: none; }
+}
+/* short windows: a tighter dock and toolbars, so the roll keeps its room */
+@media (max-height: 820px) and (min-width: 881px) {
+  .toolbar { padding: 6px 10px; }
+  .dock { gap: 3px; padding: 6px 10px 8px; }
+  .chip { padding: 3px 8px; }
+  .transport { padding: 7px 12px; gap: 8px 14px; }
+  .meter-cluster { padding-top: 6px; }
+  .tuner { gap: 6px; padding: 10px 14px 8px; }
+  .spec { height: 48px; }
+}
+@media (max-width: 880px) {
+  body { display: block; height: auto; overflow: auto; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .stage { flex: none; height: 58vh; min-height: 300px; }
+  .dock { max-height: none; }
+  .inspector { grid-template-rows: auto auto auto; }
+  .tabbody { overflow: visible; }
+  .transport { margin: 0 10px 10px; }
+  .workspace { padding: 0 10px 12px; }
+}
+@media (max-width: 520px) {
+  .topbar { gap: 10px; }
+  .brand .sub, .navlink { display: none; }
+  .recbtn, .playbtn { flex: 1; }
+  #recMode, #hear { width: 100%; }
+  #recMode button, #hear button { flex: 1; padding: 0 4px; font-size: 12px; }
+  .meter-cluster .meter { width: 80px; }
+  .meter-cluster .label { display: none; }
+  .field { grid-template-columns: 78px minmax(0, 1fr); }
+  .dock .row { grid-template-columns: 56px minmax(0, 1fr); }
 }
 </style>
 </head>
 <body>
-<header>
-  <h1>Hum Notes</h1>
-  <a class="navlink" href="lab.html" title="Record your voice part by part to build your own synth voice">Voice lab</a>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 26 26" aria-hidden="true"><rect width="26" height="26" rx="7" fill="var(--text)"/><path d="M5 15c2-6 3.5-6 5 0s3 6 5 0 3.5-6 6 0" fill="none" stroke="var(--panel)" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="15" r="2.2" fill="var(--rec)"/></svg>
+    <span>Hum Notes</span><span class="sub">hum · score · arrange</span>
+  </div>
+  <a class="navlink" href="lab.html" title="Record your voice part by part to build your own synth voice">Voice lab ↗</a>
   <div class="spacer"></div>
-  <div class="seg" id="theme">
+  <button class="iconbtn" id="keysBtn" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">?</button>
+  <div class="seg" id="theme" role="group" aria-label="Theme">
     <button data-v="light">Light</button><button data-v="mid">Mid</button><button data-v="dark">Dark</button>
   </div>
 </header>
 
-<div class="hero">
-  <button class="primary rec big" id="record">● Record</button>
-  <div class="seg" id="recKind" data-key="recKind" title="What you are recording">
-    <button data-v="hum" class="on">Hum</button><button data-v="beat">Beat</button>
-  </div>
-  <button class="big" id="playMain" disabled>▶ Play</button>
-  <button id="loopBtn" title="Play the take over and over (from the start marker)">⟳ Loop</button>
-  <div class="seg" id="hear" data-key="hear" title="What Play plays">
-    <button data-v="voice">My voice</button><button data-v="line">Sung line</button><button data-v="score" class="on">Score</button><button data-v="both">Both</button>
-  </div>
-  <select id="melSound" title="What plays the melody">
-    <option value="voice">Melody: my voice synth</option><option value="plain">Melody: plain tone</option>
-    <option value="flute">Melody: flute</option><option value="clarinet">Melody: clarinet</option><option value="oboe">Melody: oboe</option>
-    <option value="violins">Melody: violins</option><option value="cellos">Melody: cellos</option><option value="horn">Melody: horn</option>
-    <option value="trumpet">Melody: trumpet</option><option value="piano">Melody: piano</option><option value="profile">Melody: my voice profile</option>
-  </select>
-  <button class="big" id="save" disabled>Save</button>
-  <div class="linectl" id="lineCtl" hidden>
-    <span class="label">Sung line</span>
-    <div class="seg" data-key="lineEngine" title="Which voice sings the line">
-      <button data-v="natural" class="on">Natural voice</button><button data-v="profile" title="Your measured voice from the Voice lab">My voice profile</button><button data-v="simple">Simple synth</button>
+<section class="transport" aria-label="Record and play">
+  <div class="cluster">
+    <button class="recbtn" id="record"><span class="dot"></span><span id="recLabel">Record</span></button>
+    <div class="seg" id="recMode" data-key="recMode" role="group" aria-label="What the next recording does">
+      <button data-v="new" class="on" title="Record a new take (Undo brings the old one back)">New take</button><button data-v="next" title="Hear the last bar as a lead-in, then sing what comes next: it is added after the take as a new section">Next part</button><button data-v="layer" title="Hear the take while you sing a second part over it: it becomes a layer that plays along">Layer</button><button data-v="punch" title="Hear one bar before the start marker, then sing: the new notes replace what was there">Redo from marker</button>
     </div>
-    <select id="voiceSound" title="Which sound your profile voice sings">
-      <option value="mm">sing on: mm</option><option value="oo">sing on: oo</option><option value="oh">sing on: oh</option>
-      <option value="ah" selected>sing on: ah</option><option value="ee">sing on: ee</option>
-    </select>
-    <label class="sub">Smooth <input type="range" id="lineSmooth" min="0" max="1" step="0.01" value="0.35"></label>
-    <label class="sub" title="0 = exactly as you sang · 1 = on the score's notes and beats">Toward score <input type="range" id="lineTune" min="0" max="1" step="0.01" value="0.5"></label>
-    <label class="sub">Vibrato <input type="range" id="lineVib" min="0" max="1" step="0.01" value="0.3"></label>
-    <label class="sub">Even loudness <input type="range" id="lineEven" min="0" max="1" step="0.01" value="0.4"></label>
-    <label class="sub">Glide <input type="range" id="lineGlide" min="0" max="1" step="0.01" value="0.5"></label>
-  </div>
-  <div class="scorebar">
-    <div class="seg" id="layer" data-key="layer">
-      <button data-v="score" class="on">Score</button><button data-v="sung">As sung</button><button data-v="groove">Groove</button>
+    <div class="seg" id="recKind" data-key="recKind" role="group" aria-label="What you are recording">
+      <button data-v="hum" class="on" title="A melody: hum, sing or whistle">Hum</button><button data-v="beat" title="A drum groove: beatbox, tap or clap">Beat</button>
     </div>
-    <div class="transpose" title="Transpose the score">
-      <button class="small" id="tDown8">−8ve</button><button class="small" id="tDown">−1</button>
-      <input type="number" id="transpose" value="0" min="-36" max="36" step="1">
-      <button class="small" id="tUp">+1</button><button class="small" id="tUp8">+8ve</button>
+  </div>
+  <div class="cluster">
+    <button class="playbtn primary" id="playMain" disabled>▶ Play</button>
+    <button class="led" id="loopBtn" title="Play over and over (from the start marker)">Loop</button>
+    <div class="seg" id="hear" data-key="hear" role="group" aria-label="What Play plays" title="What Play plays">
+      <button data-v="voice">My voice</button><button data-v="line">Sung line</button><button data-v="score" class="on">Score</button><button data-v="both">Both</button>
     </div>
-    <label class="sub" title="Low: a plain, singable score · High: keeps grace notes, small passing notes and slurs">Detail <input type="range" id="sdetail" min="0" max="1" step="0.01" value="0.5"></label>
-    <label class="sub">Style <input type="range" id="style" min="0" max="1" step="0.01" value="0"><output id="styleV" class="val"></output></label>
-    <span class="sub" id="scoreInfo"></span>
-    <div class="seg" id="colours" data-key="colours" title="Colour notes by their place in the key">
-      <button data-v="degree" class="on">Degree colours</button><button data-v="plain">Plain</button>
-    </div>
-    <span id="degLegend"></span>
   </div>
-  <div class="devices">
-    <select id="micSel" title="Microphone"><option value="">Default mic</option></select>
-    <select id="outSel" title="Output"><option value="">Default output</option></select>
+  <div class="cluster meter-cluster">
+    <div class="status" id="status" role="status" aria-live="polite">Press Record and hum, sing or whistle</div>
+    <span class="label">Input</span><div class="meter" title="Input level"><div id="level"></div></div>
   </div>
-  <div class="hero-meter">
-    <div class="meter"><div id="level"></div></div>
-    <div class="status" id="status">Press Record and hum, sing or whistle</div>
+  <div class="cluster end">
+    <button id="undoRec" disabled title="Bring back the take as it was before the last recording">↶ Undo take</button>
+    <button id="save" disabled>Save</button>
   </div>
-</div>
+</section>
 
-<div class="backing" id="editBar" hidden>
-  <span class="label">Edit</span>
-  <button class="small" id="edUndo" title="Undo (Ctrl+Z)">↶ Undo</button>
-  <button class="small" id="edRedo" title="Redo (Ctrl+Y)">↷ Redo</button>
-  <button class="small" id="edDel" title="Delete selected notes (Delete)">Delete</button>
-  <button class="small" id="edSplit" title="Split selected notes in two (S)">Split</button>
-  <button class="small" id="edJoin" title="Join selected notes into one (J)">Join</button>
-  <button class="small" id="edDup" title="Duplicate selected notes right after (Ctrl+D)">Duplicate</button>
-  <button class="small" id="polishBtn" title="Move notes that sit badly (out of key, against the chord, awkward leaps, sung between two notes) to the nearby note that fits better · Ctrl+Z undoes">Polish melody</button>
-  <label class="sub" title="Low: only clear slips · High: more textbook">Strength <input type="range" id="polishAmt" min="0" max="1" step="0.05" value="0.5"></label>
-  <button class="small" id="tapBtn" title="Plays your take; tap the beat on the spacebar (or T). The score is then timed to your taps">Tap the beat</button>
-  <button class="small" id="tapClear" hidden title="Forget the taps and let the beat be found from the humming again">Auto beat</button>
-  <button class="small" id="edPunch" title="Plays one bar before the start marker, then records you from the marker on; the new notes replace what was there">● Record from marker</button>
-  <span class="sub" id="edInfo" title="Click a note to select · drag to move · drag its right edge to resize · double-click empty space to add · arrows nudge"></span>
-  <button class="small" id="edReset" hidden title="Throw away your edits and transcribe the take again">Re-transcribe</button>
-</div>
-<div class="backing" id="grooveCtl" hidden>
-  <span class="label">Groove</span>
-  <select id="presetSel" title="Start from a groove"><option value="">Start from…</option></select>
-  <label class="sub">BPM <input type="number" id="gBpm" min="50" max="220" step="1" value="96"></label>
-  <span class="sub" id="gInfo"></span>
-  <label class="sub">Swing <input type="range" id="gSwing" min="0.5" max="0.75" step="0.01" value="0.5"></label>
-  <button class="small" data-vary="busier">Busier</button><button class="small" data-vary="simpler">Simpler</button>
-  <button class="small" data-vary="half">Half-time</button><button class="small" data-vary="double">Double-time</button>
-  <button class="small" data-vary="fill">Fill</button><button class="small" data-vary="humanize">Humanize</button>
-  <button class="small" data-vary="clear">Clear</button>
-  <button id="gHum" title="Play this groove while you record a hum, instead of a click">Hum over it</button>
-  <button id="gUse" title="Use this groove as the rhythm under the score's backing">Use under backing</button>
-</div>
-<div class="backing" id="backing">
-  <span class="label">Backing</span>
-  <select id="moodSel" title="Mood: a starting combination of the shape controls">
-    <option value="lofi">Mood: Lo-fi</option><option value="heroic">Mood: Heroic</option><option value="dramatic">Mood: Dramatic</option>
-    <option value="folk">Mood: Folk</option><option value="light">Mood: Light</option><option value="sad">Mood: Sad</option><option value="custom">Mood: Custom</option>
-  </select>
-  <div class="toggles" id="accToggles">
-    <button data-acc="melody" class="on">Melody</button><button data-acc="harmonics">Harmonic tones</button><button data-acc="drone" class="on">Drone</button><button data-acc="chords" class="on">Chords</button><button data-acc="bass" class="on">Bass</button><button data-acc="counter" class="on">Counter</button><button data-acc="rhythm" class="on">Rhythm</button><button data-acc="motif">Motif</button>
-  </div>
-  <label class="sub">Level <input type="range" id="bvol" min="0" max="1" step="0.01" value="0.7"></label>
-  <details id="shape">
-    <summary>Shape the backing</summary>
-    <div class="bar">
-      <div class="group"><span class="label">Writing</span>
-        <div class="seg" data-key="writing"><button data-v="blocks">Patterns</button><button data-v="arranged" class="on">Arranged</button></div>
-        <div class="seg" data-key="energy"><button data-v="flat">Flat</button><button data-v="build">Build</button><button data-v="arc" class="on">Arc</button></div>
-        <div class="seg" data-key="formAware" title="Composed: chords and backing follow your phrases (cadences, repeats, answers). Bar by bar: one decision per bar"><button data-v="on" class="on">Composed</button><button data-v="off">Bar by bar</button></div>
+<main class="workspace">
+  <section class="editor" aria-label="Roll">
+    <div class="toolbar">
+      <div class="seg" id="layer" data-key="layer" role="group" aria-label="What the roll shows">
+        <button data-v="score" class="on" title="The clean score with its backing">Score</button><button data-v="sung" title="Exactly what you sang">As sung</button><button data-v="groove" title="The drum groove">Groove</button>
       </div>
-      <div class="group"><span class="label">Harmony</span>
-        <div class="seg" data-key="harmony"><button data-v="plain" class="on">Plain</button><button data-v="modal">Modal</button><button data-v="rich">Rich</button><button data-v="dark">Dark</button><button data-v="lift">Lift</button></div>
-      </div>
-      <div class="group"><span class="label">Chord change</span>
-        <div class="seg" data-key="chordRate"><button data-v="0.5">2 bars</button><button data-v="1" class="on">Bar</button><button data-v="2">½ bar</button></div>
-      </div>
-      <div class="group"><span class="label">Texture</span>
-        <div class="seg" data-key="chordStyle"><button data-v="pad" class="on">Pad</button><button data-v="pulse">Pulse</button><button data-v="arp">Arp</button><button data-v="strum">Strum</button><button data-v="ostinato">Ostinato</button></div>
-      </div>
-      <div class="group"><span class="label">Sound</span>
-        <div class="seg" data-key="sound"><button data-v="synth" class="on">Synth</button><button data-v="strings">Strings</button><button data-v="brass">Brass</button><button data-v="pluck">Pluck</button><button data-v="keys">Keys</button><button data-v="orchestra">Orchestra</button></div>
-      </div>
-      <div class="group"><span class="label">Spacing</span>
-        <div class="seg" data-key="spacing"><button data-v="close" class="on">Close</button><button data-v="open">Open</button><button data-v="wide">Wide</button></div>
-        <div class="seg" data-key="register"><button data-v="low">Low</button><button data-v="mid" class="on">Mid</button><button data-v="high">High</button></div>
-      </div>
-      <div class="group"><span class="label">Motif use</span>
-        <div class="seg" data-key="motifUse"><button data-v="ostinato" class="on">Ostinato</button><button data-v="echo">Echo</button><button data-v="sequence">Sequence</button><button data-v="slow">Slow</button><button data-v="mirror">Mirror</button></div>
-      </div>
-      <div class="group"><span class="label">Rhythm</span>
-        <div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="march">March</button><button data-v="drive">Drive</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div>
-        <select id="meterSel" title="Meter"><option value="auto">Meter: auto</option><option value="2">2/4</option><option value="3">3/4</option><option value="4">4/4</option></select>
+      <span class="info" id="scoreInfo"></span>
+      <span id="degLegend"></span>
+      <div class="spacer"></div>
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button><button id="zoomFit" title="Show the whole take (0)">Fit</button><button id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">+</button>
       </div>
     </div>
-  </details>
-</div>
-
-<details id="more">
-<summary>More controls</summary>
-<div class="bar">
-  <div class="group">
-    <button id="listen">Mic on</button>
-    <button id="play" disabled>Play</button>
-    <div class="seg" id="playmode" data-key="playMode">
-      <button data-v="voice" class="on">Voice</button><button data-v="notes">Notes</button><button data-v="both">Both</button><button data-v="partials">Partials</button>
+    <div class="toolbar sub" id="editBar" hidden>
+      <button class="small" id="edUndo" title="Undo (Ctrl+Z)">↶</button>
+      <button class="small" id="edRedo" title="Redo (Ctrl+Y)">↷</button>
+      <span class="sep"></span>
+      <button class="small" id="edDel" title="Delete selected notes (Delete)">Delete</button>
+      <button class="small" id="edSplit" title="Split selected notes in two (S)">Split</button>
+      <button class="small" id="edJoin" title="Join selected notes into one (J)">Join</button>
+      <button class="small" id="edDup" title="Duplicate selected notes right after (Ctrl+D)">Duplicate</button>
+      <span class="sep"></span>
+      <button class="small" id="polishBtn" title="Move notes that sit badly (out of key, against the chord, awkward leaps, sung between two notes) to the nearby note that fits better · Ctrl+Z undoes">Polish melody</button>
+      <button class="small" id="tapBtn" title="Plays your take; tap the beat on the spacebar (or T). The score is then timed to your taps">Tap the beat</button>
+      <button class="small" id="tapClear" hidden title="Forget the taps and let the beat be found from the humming again">Auto beat</button>
+      <button class="small" id="edReset" hidden title="Throw away your edits and transcribe the take again">Re-transcribe</button>
+      <span id="edInfo" title="Click a note to select · drag to move · drag its right edge to resize · double-click empty space to add · arrows nudge"></span>
     </div>
-    <button id="clear" disabled>Clear</button>
-  </div>
-  <div class="group">
-    <span class="label">Drone</span>
-    <button id="drone">Off</button>
-    <select id="root"></select>
-    <select id="oct"><option>1</option><option selected>2</option><option>3</option><option>4</option></select>
-    <select id="wave">
-      <option value="sine">Sine</option><option value="triangle" selected>Soft</option><option value="sawtooth">Reed</option>
-    </select>
-    <div class="seg" id="voicing" data-key="voicing">
-      <button data-v="root" class="on">1</button><button data-v="fifth">1+5</button><button data-v="oct">1+5+8</button>
+    <div class="toolbar sub" id="grooveCtl" hidden>
+      <select id="presetSel" title="Start from a groove"><option value="">Start from…</option></select>
+      <label class="sub">BPM <input type="number" id="gBpm" min="50" max="220" step="1" value="96"></label>
+      <span class="sub num" id="gInfo"></span>
+      <label class="sub">Swing <input type="range" id="gSwing" min="0.5" max="0.75" step="0.01" value="0.5"></label>
+      <span class="sep"></span>
+      <button class="small" data-vary="busier">Busier</button><button class="small" data-vary="simpler">Simpler</button>
+      <button class="small" data-vary="half">Half-time</button><button class="small" data-vary="double">Double-time</button>
+      <button class="small" data-vary="fill">Fill</button><button class="small" data-vary="humanize">Humanize</button>
+      <button class="small" data-vary="clear">Clear</button>
+      <span class="sep"></span>
+      <button class="small led" id="gHum" title="Play this groove while you record a hum, instead of a click">Hum over it</button>
+      <button class="small" id="gUse" title="Use this groove as the rhythm under the score's backing">Use under backing</button>
     </div>
-    <input type="range" id="dvol" min="0" max="1" step="0.01" value="0.35" title="Drone level">
-  </div>
-  <div class="group">
-    <span class="label">Click</span>
-    <button id="metro">Off</button>
-    <input type="number" id="bpm" min="40" max="240" step="1" value="90" title="BPM">
-    <select id="beats" title="Beats per bar"><option>2</option><option>3</option><option selected>4</option><option>6</option></select>
-    <input type="range" id="mvol" min="0" max="1" step="0.01" value="0.5" title="Click level">
-  </div>
-  <div class="group">
-    <span class="label">Score</span>
-    <select id="keySel" title="Key"><option value="auto">Key: auto</option></select>
-    <select id="sres" title="Score grid"><option value="2" selected>Grid 1/8</option><option value="4">Grid 1/16</option><option value="3">Grid 1/8t</option><option value="1">Grid 1/4</option></select>
-    <select id="tuningSel" title="Tuning"><option value="auto">Tuning: follow my voice</option><option value="a440">Tuning: A440</option></select>
-  </div>
-  <div class="group">
-    <span class="label">Notes</span>
-    <div class="seg" id="snap" data-key="snap">
-      <button data-v="chrom" class="on">Chromatic</button><button data-v="major">Major</button><button data-v="minor">Minor</button>
+    <div class="stage">
+      <canvas id="cv"></canvas>
+      <div class="empty" id="emptyMsg">
+        <b>Hum a tune.</b>
+        <span>Press <kbd>Record</kbd> or <kbd>Space</kbd>, hum, sing or whistle, then stop. The notes, a score and a backing appear here. Then record the next part, or a layer on top.</span>
+      </div>
     </div>
-    <label class="sub">Detail <input type="range" id="detail" min="0" max="1" step="0.01" value="0.6"><output id="detailV" class="val"></output></label>
-    <div class="seg" id="rhythm" data-key="rhythm">
-      <button data-v="free" class="on">Free</button><button data-v="grid">Grid</button>
+    <div class="dock">
+      <div class="row parts-row"><span class="label">Parts</span><div class="chips"><span class="inline" id="parts"></span><span class="inline" id="harmRow"></span></div></div>
+      <div class="row"><span class="label">Sections</span><div class="chips" id="sections"></div></div>
+      <div class="row"><span class="label">Chords</span><div class="chips" id="chords"></div></div>
+      <div class="row"><span class="label">Notes</span><div class="chips" id="notes"></div></div>
+      <div class="ptracks" id="ptracks"></div>
     </div>
-    <select id="res" title="Grid"><option value="2">1/8</option><option value="4" selected>1/16</option><option value="3">1/8t</option></select>
-    <span class="tempo" id="tempo"></span>
-    <button class="small" id="half" title="Half tempo">÷2</button><button class="small" id="dbl" title="Double tempo">×2</button>
-  </div>
-  <div class="group">
-    <span class="label">Auto-tune</span>
-    <label class="sub">Amount <input type="range" id="tune" min="0" max="1" step="0.01" value="0"><output id="tuneV" class="val"></output></label>
-    <label class="sub">Snap <input type="range" id="speed" min="0" max="1" step="0.01" value="0.3"> Natural</label>
-    <button id="monitor" title="Hear yourself tuned (headphones)">Hear live</button>
-    <input type="range" id="mon" min="0" max="1" step="0.01" value="0.7" title="Live level">
-    <span class="sub" id="monLat"></span>
-  </div>
-  <div class="group">
-    <span class="label">Tone</span>
-    <div class="seg" id="timbre" data-key="timbre">
-      <button data-v="plain">Plain</button><button data-v="voice" class="on">Your voice</button>
-    </div>
-    <label class="sub">Flourish <input type="range" id="flourish" min="0" max="1" step="0.01" value="0.5"><output id="flourishV" class="val"></output></label>
-  </div>
-  <div class="group">
-    <span class="label">Partials</span>
-    <div class="seg" id="partials" data-key="partials">
-      <button data-v="off">Off</button><button data-v="on" class="on">On</button>
-    </div>
-    <label class="sub">Range <input type="range" id="prange" min="6" max="48" step="1" value="24"><output id="prangeV" class="val"></output></label>
-  </div>
-  <div class="group">
-    <span class="label">Gate</span>
-    <input type="range" id="gate" min="0" max="0.08" step="0.001" value="0" title="Extra input gate (left: automatic)">
-  </div>
-  <div class="group">
-    <button id="copy" disabled>Copy</button>
-    <button id="midi" disabled>MIDI</button>
-    <button id="wav" disabled>WAV</button>
-  </div>
-</div>
-</details>
-
-<main>
-  <section class="readout">
-    <div class="note-big" id="big">–</div>
-    <div class="cents">
-      <div class="track"></div><div class="mid"></div><div class="needle" id="needle"></div>
-      <div class="scale"><span>−50</span><span>0</span><span>+50</span></div>
-    </div>
-    <div class="hz" id="hz">&nbsp;</div>
-    <div class="interval" id="interval">&nbsp;</div>
-    <div class="livekey" id="liveKey"></div>
-    <div class="beats" id="beatdots"></div>
-    <canvas id="spec" class="spec"></canvas>
   </section>
-  <section class="stage"><canvas id="cv"></canvas></section>
+
+  <aside class="inspector" aria-label="Controls">
+    <section class="tuner" aria-label="Tuner">
+      <div class="tuner-top">
+        <div class="note-big" id="big">–</div>
+        <div class="tuner-meta"><div class="hz" id="hz">&nbsp;</div><div class="interval" id="interval">&nbsp;</div></div>
+      </div>
+      <div class="cents">
+        <div class="track"></div><div class="mid"></div><div class="needle" id="needle"></div>
+        <div class="scale"><span>−50¢</span><span>0</span><span>+50¢</span></div>
+      </div>
+      <div class="livekey" id="liveKey"></div>
+      <div class="beats" id="beatdots"></div>
+      <canvas id="spec" class="spec"></canvas>
+    </section>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="backing" aria-selected="true">Backing</button>
+      <button role="tab" data-tab="score" aria-selected="false">Score</button>
+      <button role="tab" data-tab="voice" aria-selected="false">Voice</button>
+      <button role="tab" data-tab="setup" aria-selected="false">Setup</button>
+    </nav>
+    <div class="tabbody">
+      <!-- Backing -->
+      <div class="pane" data-pane="backing" role="tabpanel">
+        <p class="hint" id="backingOff" hidden>The backing is worked out from the score. Switch the roll to <b>Score</b> to shape it.</p>
+        <div id="backing">
+          <h3>Mood</h3>
+          <div class="field"><span class="label">Start from</span><div class="ctl"><select id="moodSel" title="Mood: a starting combination of the shape controls">
+            <option value="lofi">Lo-fi</option><option value="heroic">Heroic</option><option value="dramatic">Dramatic</option>
+            <option value="folk">Folk</option><option value="light">Light</option><option value="sad">Sad</option><option value="custom">Custom</option>
+          </select></div></div>
+          <div class="field"><span class="label">Level</span><div class="ctl"><input type="range" id="bvol" min="0" max="1" step="0.01" value="0.7"></div></div>
+          <h3>What plays</h3>
+          <div class="toggles" id="accToggles">
+            <button class="led on" data-acc="melody">Melody</button><button class="led" data-acc="harmonics">Harmonic tones</button><button class="led on" data-acc="drone">Drone</button><button class="led on" data-acc="chords">Chords</button><button class="led on" data-acc="bass">Bass</button><button class="led on" data-acc="counter">Counter</button><button class="led on" data-acc="rhythm">Rhythm</button><button class="led" data-acc="motif">Motif</button>
+          </div>
+          <h3>Shape</h3>
+          <div class="field"><span class="label">Writing</span><div class="seg" data-key="writing"><button data-v="blocks">Patterns</button><button data-v="arranged" class="on">Arranged</button></div></div>
+          <div class="field"><span class="label">Energy</span><div class="seg" data-key="energy"><button data-v="flat">Flat</button><button data-v="build">Build</button><button data-v="arc" class="on">Arc</button></div></div>
+          <div class="field"><span class="label">Follows</span><div class="seg" data-key="formAware" title="Composed: chords and backing follow your phrases (cadences, repeats, answers). Bar by bar: one decision per bar"><button data-v="on" class="on">Phrases</button><button data-v="off">Bar by bar</button></div></div>
+          <div class="field"><span class="label">Harmony</span><div class="seg" data-key="harmony"><button data-v="plain" class="on">Plain</button><button data-v="modal">Modal</button><button data-v="rich">Rich</button><button data-v="dark">Dark</button><button data-v="lift">Lift</button></div></div>
+          <div class="field"><span class="label">Chord change</span><div class="seg" data-key="chordRate"><button data-v="0.5">2 bars</button><button data-v="1" class="on">Bar</button><button data-v="2">½ bar</button></div></div>
+          <div class="field"><span class="label">Texture</span><div class="seg" data-key="chordStyle"><button data-v="pad" class="on">Pad</button><button data-v="pulse">Pulse</button><button data-v="arp">Arp</button><button data-v="strum">Strum</button><button data-v="ostinato">Ostinato</button></div></div>
+          <div class="field"><span class="label">Sound</span><div class="seg" data-key="sound"><button data-v="synth" class="on">Synth</button><button data-v="strings">Strings</button><button data-v="brass">Brass</button><button data-v="pluck">Pluck</button><button data-v="keys">Keys</button><button data-v="orchestra">Orchestra</button></div></div>
+          <div class="field"><span class="label">Spacing</span><div class="seg" data-key="spacing"><button data-v="close" class="on">Close</button><button data-v="open">Open</button><button data-v="wide">Wide</button></div></div>
+          <div class="field"><span class="label">Register</span><div class="seg" data-key="register"><button data-v="low">Low</button><button data-v="mid" class="on">Mid</button><button data-v="high">High</button></div></div>
+          <div class="field"><span class="label">Motif use</span><div class="seg" data-key="motifUse"><button data-v="ostinato" class="on">Ostinato</button><button data-v="echo">Echo</button><button data-v="sequence">Sequence</button><button data-v="slow">Slow</button><button data-v="mirror">Mirror</button></div></div>
+          <div class="field"><span class="label">Rhythm</span><div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="march">March</button><button data-v="drive">Drive</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div></div>
+          <div class="field"><span class="label">Meter</span><div class="ctl"><select id="meterSel" title="Meter"><option value="auto">Auto</option><option value="2">2/4</option><option value="3">3/4</option><option value="4">4/4</option></select></div></div>
+        </div>
+      </div>
+
+      <!-- Score -->
+      <div class="pane" data-pane="score" role="tabpanel" hidden>
+        <h3>Melody</h3>
+        <div class="field"><span class="label">Played by</span><div class="ctl"><select id="melSound" title="What plays the melody">
+          <option value="voice">My voice synth</option><option value="plain">Plain tone</option>
+          <option value="flute">Flute</option><option value="clarinet">Clarinet</option><option value="oboe">Oboe</option>
+          <option value="violins">Violins</option><option value="cellos">Cellos</option><option value="horn">Horn</option>
+          <option value="trumpet">Trumpet</option><option value="piano">Piano</option><option value="profile">My voice profile</option>
+        </select></div></div>
+        <div class="field"><span class="label">Transpose</span><div class="ctl transpose" title="Transpose the score">
+          <button class="small" id="tDown8">−8ve</button><button class="small" id="tDown">−1</button>
+          <input type="number" id="transpose" value="0" min="-36" max="36" step="1">
+          <button class="small" id="tUp">+1</button><button class="small" id="tUp8">+8ve</button>
+        </div></div>
+        <div class="field" title="Low: a plain, singable score · High: keeps grace notes, small passing notes and slurs"><span class="label">Detail</span><div class="ctl"><input type="range" id="sdetail" min="0" max="1" step="0.01" value="0.5"></div></div>
+        <div class="field" title="0: clean score timing and pitch · up: blends in how you actually sang it"><span class="label">Style</span><div class="ctl"><input type="range" id="style" min="0" max="1" step="0.01" value="0"><output id="styleV" class="val"></output></div></div>
+        <div class="field"><span class="label">Colours</span><div class="seg" id="colours" data-key="colours" title="Colour notes by their place in the key"><button data-v="degree" class="on">Scale degree</button><button data-v="plain">Plain</button></div></div>
+        <h3>Reading the take</h3>
+        <div class="field"><span class="label">Key</span><div class="ctl"><select id="keySel" title="Key"><option value="auto">Auto</option></select></div></div>
+        <div class="field"><span class="label">Grid</span><div class="ctl"><select id="sres" title="Score grid"><option value="2" selected>1/8</option><option value="4">1/16</option><option value="3">1/8 triplets</option><option value="1">1/4</option></select></div></div>
+        <div class="field"><span class="label">Tuning</span><div class="ctl"><select id="tuningSel" title="Tuning"><option value="auto">Follow my voice</option><option value="a440">A440</option></select></div></div>
+        <div class="field" title="Polish melody: low moves only clear slips · high is more textbook"><span class="label">Polish</span><div class="ctl"><input type="range" id="polishAmt" min="0" max="1" step="0.05" value="0.5"></div></div>
+        <p class="hint">Edit on the roll: click a note to select, drag to move, drag its right edge to resize, double-click empty space to add a note. Click empty space to set the start marker.</p>
+      </div>
+
+      <!-- Voice -->
+      <div class="pane" data-pane="voice" role="tabpanel" hidden>
+        <h3>Sung line</h3>
+        <p class="hint">What <b>Sung line</b> plays: your own pitch curve, sung by a voice and tidied by these controls.</p>
+        <div id="lineCtl">
+          <div class="field"><span class="label">Voice</span><div class="seg" data-key="lineEngine" title="Which voice sings the line"><button data-v="natural" class="on">Natural</button><button data-v="profile" title="Your measured voice from the Voice lab">My profile</button><button data-v="simple">Simple</button></div></div>
+          <div class="field"><span class="label">Sing on</span><div class="ctl"><select id="voiceSound" title="Which sound your profile voice sings">
+            <option value="mm">mm</option><option value="oo">oo</option><option value="oh">oh</option><option value="ah" selected>ah</option><option value="ee">ee</option>
+          </select></div></div>
+          <div class="field"><span class="label">Smooth</span><div class="ctl"><input type="range" id="lineSmooth" min="0" max="1" step="0.01" value="0.35"></div></div>
+          <div class="field" title="0 = exactly as you sang · 1 = on the score's notes and beats"><span class="label">Toward score</span><div class="ctl"><input type="range" id="lineTune" min="0" max="1" step="0.01" value="0.5"></div></div>
+          <div class="field"><span class="label">Vibrato</span><div class="ctl"><input type="range" id="lineVib" min="0" max="1" step="0.01" value="0.3"></div></div>
+          <div class="field"><span class="label">Even level</span><div class="ctl"><input type="range" id="lineEven" min="0" max="1" step="0.01" value="0.4"></div></div>
+          <div class="field"><span class="label">Glide</span><div class="ctl"><input type="range" id="lineGlide" min="0" max="1" step="0.01" value="0.5"></div></div>
+        </div>
+        <h3>As sung</h3>
+        <div class="field"><span class="label">Snap to</span><div class="seg" id="snap" data-key="snap"><button data-v="chrom" class="on">Chromatic</button><button data-v="major">Major</button><button data-v="minor">Minor</button></div></div>
+        <div class="field"><span class="label">Detail</span><div class="ctl"><input type="range" id="detail" min="0" max="1" step="0.01" value="0.6"><output id="detailV" class="val"></output></div></div>
+        <div class="field"><span class="label">Timing</span><div class="ctl"><div class="seg" id="rhythm" data-key="rhythm"><button data-v="free" class="on">Free</button><button data-v="grid">Grid</button></div>
+          <select id="res" title="Grid"><option value="2">1/8</option><option value="4" selected>1/16</option><option value="3">1/8t</option></select></div></div>
+        <div class="field"><span class="label">Tempo</span><div class="ctl"><span id="tempo"></span><button class="small" id="half" title="Half tempo">÷2</button><button class="small" id="dbl" title="Double tempo">×2</button></div></div>
+        <h3>Auto-tune</h3>
+        <div class="field"><span class="label">Amount</span><div class="ctl"><input type="range" id="tune" min="0" max="1" step="0.01" value="0"><output id="tuneV" class="val"></output></div></div>
+        <div class="field" title="Left: snaps hard · right: natural"><span class="label">Snap</span><div class="ctl"><input type="range" id="speed" min="0" max="1" step="0.01" value="0.3"></div></div>
+        <div class="field"><span class="label">Live</span><div class="ctl"><button class="small led" id="monitor" title="Hear yourself tuned (headphones) · H">Hear live</button><input type="range" id="mon" min="0" max="1" step="0.01" value="0.7" title="Live level" style="flex:1"><span class="val" id="monLat"></span></div></div>
+        <h3>Tone</h3>
+        <div class="field"><span class="label">Timbre</span><div class="seg" id="timbre" data-key="timbre"><button data-v="plain">Plain</button><button data-v="voice" class="on">Your voice</button></div></div>
+        <div class="field"><span class="label">Flourish</span><div class="ctl"><input type="range" id="flourish" min="0" max="1" step="0.01" value="0.5"><output id="flourishV" class="val"></output></div></div>
+        <h3>Partials</h3>
+        <div class="field"><span class="label">Show</span><div class="seg" id="partials" data-key="partials"><button data-v="off">Off</button><button data-v="on" class="on">On</button></div></div>
+        <div class="field"><span class="label">Range</span><div class="ctl"><input type="range" id="prange" min="6" max="48" step="1" value="24"><output id="prangeV" class="val"></output></div></div>
+        <div class="field" title="Extra input gate (left: automatic)"><span class="label">Input gate</span><div class="ctl"><input type="range" id="gate" min="0" max="0.08" step="0.001" value="0"></div></div>
+        <h3>Preview</h3>
+        <div class="field"><span class="label">Play take</span><div class="ctl"><button class="small" id="play" disabled>▶ Play</button><div class="seg" id="playmode" data-key="playMode"><button data-v="voice" class="on">Voice</button><button data-v="notes">Notes</button><button data-v="both">Both</button><button data-v="partials">Partials</button></div></div></div>
+      </div>
+
+      <!-- Setup -->
+      <div class="pane" data-pane="setup" role="tabpanel" hidden>
+        <h3>Audio</h3>
+        <div class="field"><span class="label">Microphone</span><div class="ctl"><select id="micSel" title="Microphone"><option value="">Default mic</option></select></div></div>
+        <div class="field"><span class="label">Output</span><div class="ctl"><select id="outSel" title="Output"><option value="">Default output</option></select></div></div>
+        <div class="field"><span class="label">Mic</span><div class="ctl"><button class="small" id="listen">Mic on</button></div></div>
+        <p class="hint">For <b>Next part</b>, <b>Layer</b> and <b>Redo from marker</b>, wear headphones: the mic should hear only you, not the playback.</p>
+        <h3>Drone</h3>
+        <div class="field"><span class="label" title="Key: D">Drone</span><div class="ctl"><button class="small led" id="drone">Off</button><select id="root" title="Home note"></select><select id="oct" title="Octave"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div>
+        <div class="field"><span class="label">Sound</span><div class="ctl"><select id="wave"><option value="sine">Sine</option><option value="triangle" selected>Soft</option><option value="sawtooth">Reed</option></select>
+          <div class="seg" id="voicing" data-key="voicing"><button data-v="root" class="on">1</button><button data-v="fifth">1+5</button><button data-v="oct">1+5+8</button></div></div></div>
+        <div class="field"><span class="label">Level</span><div class="ctl"><input type="range" id="dvol" min="0" max="1" step="0.01" value="0.35" title="Drone level"></div></div>
+        <h3>Click</h3>
+        <div class="field"><span class="label" title="Key: M">Click</span><div class="ctl"><button class="small led" id="metro">Off</button><input type="number" id="bpm" min="40" max="240" step="1" value="90" title="BPM"><select id="beats" title="Beats per bar"><option>2</option><option>3</option><option selected>4</option><option>6</option></select></div></div>
+        <div class="field"><span class="label">Level</span><div class="ctl"><input type="range" id="mvol" min="0" max="1" step="0.01" value="0.5" title="Click level"></div></div>
+        <h3>Take</h3>
+        <div class="btnrow">
+          <button class="small" id="copy" disabled title="Copy the notes as text">Copy notes</button>
+          <button class="small" id="midi" disabled title="Download a MIDI file (score view: every part as its own track)">MIDI</button>
+          <button class="small" id="wav" disabled title="Download the recording (with its layers) as a WAV file">WAV</button>
+          <button class="small" id="clear" disabled title="Start over (Undo take brings it back)">Clear take</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 </main>
 
-<footer>
-  <div class="notes" id="sections"></div>
-  <div class="notes" id="chords"></div>
-  <div class="notes" id="notes"></div>
-  <div class="notes" id="ptracks"></div>
-</footer>
+<dialog id="keysDlg" aria-label="Keyboard shortcuts">
+  <h2>Keyboard</h2>
+  <table>
+    <tr><td><kbd>Space</kbd></td><td>Record / stop (in the record mode chosen)</td></tr>
+    <tr><td><kbd>P</kbd> or <kbd>Enter</kbd></td><td>Play / stop</td></tr>
+    <tr><td><kbd>L</kbd></td><td>Loop on or off</td></tr>
+    <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd></td><td>Record mode: new take, next part, layer, redo from marker</td></tr>
+    <tr><td><kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd></td><td>Zoom in, out, whole take · Ctrl + wheel zooms, wheel scrolls</td></tr>
+    <tr><td><kbd>D</kbd> <kbd>M</kbd> <kbd>H</kbd></td><td>Drone, click, hear yourself live</td></tr>
+    <tr><td>Score edits</td><td><kbd>Delete</kbd> · arrows nudge (<kbd>Shift</kbd>: octave / beat) · <kbd>S</kbd> split · <kbd>J</kbd> join · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>D</kbd>/<kbd>A</kbd> · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></td></tr>
+    <tr><td><kbd>Esc</kbd></td><td>Clear selection and start marker</td></tr>
+    <tr><td><kbd>?</kbd></td><td>This list</td></tr>
+  </table>
+  <form method="dialog"><button class="primary">Close</button></form>
+</dialog>
 
 <script>
   // on a shared copy (GitHub Pages, a tunnel) there is no local server: no saving, no Voice lab, no live reload
@@ -441,7 +453,7 @@ footer .notes { flex: none; align-items: flex-start; }
   if (HOSTED) document.querySelector('.navlink[href="lab.html"]').hidden = true;
   // live reload: poll the page's files and reload when one changes (kept here so it outlives script errors)
   if (!HOSTED) (async function watch() {
-    const files = ['index.html', 'app.js', 'dsp.js', 'voicesynth.js', 'profilesynth.js', 'motif.js', 'arrange.js', 'form.js', 'rhythm2.js', 'sampler.js', 'rhythm.js', 'pitch-worklet.js'], seen = {};
+    const files = ['index.html', 'theme.css', 'app.js', 'dsp.js', 'voicesynth.js', 'profilesynth.js', 'motif.js', 'arrange.js', 'form.js', 'rhythm2.js', 'sampler.js', 'rhythm.js', 'pitch-worklet.js'], seen = {};
     let pending = false;
     for (;;) {
       for (const f of files) {

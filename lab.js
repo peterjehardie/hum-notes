@@ -497,7 +497,7 @@ function drawTuner() {
   for (const c of [-100, 100]) { g.setLineDash([3, 4]); g.beginPath(); g.moveTo(0, Y(c)); g.lineTo(W, Y(c)); g.stroke(); }
   g.setLineDash([]); g.strokeStyle = css('--text') || '#141413'; g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(W, Y(0)); g.stroke();
-  g.font = '12px "DM Sans", sans-serif'; g.fillStyle = css('--muted') || '#888';
+  g.font = '12px "Space Grotesk", sans-serif'; g.fillStyle = css('--muted') || '#888';
   g.fillText(`${noteName(target)} · ${midiToHz(target).toFixed(1)} Hz`, 8, Y(0) - 6);
   g.fillText('+1 semitone', 8, Y(100) - 4); g.fillText('−1 semitone', 8, Y(-100) + 12);
   const now = performance.now() / 1000, pts = L.live || [];

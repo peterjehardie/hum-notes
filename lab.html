@@ -4,68 +4,30 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Voice lab · Hum Notes</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-@font-face { font-family: 'DM Sans'; src: url(fonts/dmsans.woff2) format('woff2'); font-weight: 100 1000; font-display: swap; }
-@font-face { font-family: 'Source Serif 4'; src: url(fonts/sourceserif4.woff2) format('woff2'); font-weight: 200 900; font-display: swap; }
-
-:root, [data-theme="light"] {
-  --bg: #FAF9F5; --surface: #F0EEE6; --raise: #FFFFFF; --text: #141413; --muted: #6B6A63;
-  --line: #E3E0D6; --accent: #D97757; --accent-strong: #C15F3C; --on-accent: #FFFFFF;
-  --good: #5E7A3E; --bad: #B5452B; --grid: rgba(20,20,19,0.07);
-  --deg1: #CC785C; --deg2: #6A9BCC; --deg3: #C4935F; --deg4: #8E8AB8; --deg5: #788C5D; --deg6: #5E9C8C; --deg7: #C46686; --deg0: #A8A497;
-}
-[data-theme="mid"] {
-  --bg: #A6A297; --surface: #9A968B; --raise: #B3AFA4; --text: #161513; --muted: #3F3D38;
-  --line: #8C887E; --accent: #B9573A; --accent-strong: #9A4329; --on-accent: #FFFFFF;
-  --good: #34481F; --bad: #7E2A16; --grid: rgba(20,20,19,0.09);
-  --deg1: #A9502F; --deg2: #3F6E9E; --deg3: #94652F; --deg4: #5F5A8E; --deg5: #55693B; --deg6: #2F6E60; --deg7: #9A3D5E; --deg0: #6B6860;
-}
-[data-theme="dark"] {
-  --bg: #1F1E1D; --surface: #262624; --raise: #30302E; --text: #F0EEE6; --muted: #A3A097;
-  --line: #3A3936; --accent: #D97757; --accent-strong: #E58B6D; --on-accent: #141413;
-  --good: #A3B886; --bad: #EE9677; --grid: rgba(240,238,230,0.06);
-  --deg1: #E58B6D; --deg2: #8DB6E0; --deg3: #E0B98E; --deg4: #ADA9D6; --deg5: #A3B886; --deg6: #8CC2B3; --deg7: #E08AA8; --deg0: #8C887E;
-}
-
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body {
   background: var(--bg); color: var(--text);
-  font: 14px/1.4 'DM Sans', system-ui, sans-serif;
+  font: 13px/1.4 var(--ui);
   display: flex; flex-direction: column; gap: 12px; padding: 14px 16px 24px; min-height: 100vh;
   max-width: 1200px; margin: 0 auto;
 }
 header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
-h1 { font: 600 24px/1 'Source Serif 4', Georgia, serif; margin: 0; letter-spacing: -0.01em; }
-h2 { font: 600 17px/1.2 'Source Serif 4', Georgia, serif; margin: 0; }
+h1 { font: 700 20px/1 var(--ui); margin: 0; letter-spacing: -0.01em; }
+h2 { font: 500 11px/1.2 var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0; }
 header a { color: var(--muted); text-decoration: none; font-size: 13px; }
 header a:hover { color: var(--accent-strong); }
 .spacer { flex: 1; }
 
-section { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-panel); padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .hint { font-size: 12px; color: var(--muted); }
-.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
-.val { font-variant-numeric: tabular-nums; }
 
-button, select, input[type=number] {
-  font: inherit; color: var(--text); background: var(--raise);
-  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer;
-}
-input[type=number] { width: 58px; padding: 5px 6px; cursor: text; font-variant-numeric: tabular-nums; }
 input[type=file] { font: inherit; font-size: 12px; color: var(--muted); max-width: 220px; }
-button:hover, select:hover { border-color: var(--muted); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
-button.primary:hover { background: var(--accent-strong); border-color: var(--accent-strong); }
-button.on { background: var(--text); color: var(--bg); border-color: var(--text); }
-button.big { font-size: 16px; padding: 9px 22px; border-radius: 10px; }
-button:disabled { opacity: 0.45; cursor: default; }
-button.small { padding: 3px 8px; font-size: 12px; }
-select { padding: 6px 8px; max-width: 260px; }
-.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { border: 0; border-radius: 0; padding: 5px 10px; background: var(--raise); }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button.on { background: var(--text); color: var(--bg); }
+button.big { height: 40px; font-size: 15px; padding: 0 20px; border-radius: 20px; }
+select { max-width: 260px; }
 
 .meter { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; flex: 1; min-width: 120px; position: relative; }
 .meter > div { height: 100%; width: 0; background: var(--muted); transition: width 40ms linear; }
@@ -73,7 +35,7 @@ select { padding: 6px 8px; max-width: 260px; }
 .meter > div.voiced { background: var(--accent); }
 
 .chip {
-  background: var(--raise); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+  background: var(--raise); border: 1px solid var(--line); border-radius: var(--r-ctl); padding: 3px 9px;
   font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-flex; gap: 5px; align-items: center;
 }
 .chip b { font-weight: 600; }
@@ -90,7 +52,7 @@ button.chip.off { opacity: 0.45; text-decoration: line-through; }
 
 /* the karaoke prompt */
 .prompt { display: grid; grid-template-columns: 1fr auto; gap: 10px 20px; align-items: center; }
-.say { font: 600 52px/1.05 'Source Serif 4', Georgia, serif; letter-spacing: -0.02em; min-height: 56px; }
+.say { font: 600 52px/1.05 var(--ui); letter-spacing: -0.02em; min-height: 56px; }
 .say b { color: var(--accent-strong); font-weight: 700; }
 .say small { font-size: 0.5em; color: var(--muted); font-weight: 500; }
 .phase { font-size: 15px; color: var(--muted); min-height: 21px; }
@@ -118,7 +80,7 @@ button.chip.off { opacity: 0.45; text-decoration: line-through; }
 .maps { display: grid; grid-template-columns: minmax(260px, 420px) 1fr; gap: 14px; align-items: start; }
 .map { background: var(--raise); border: 1px solid var(--line); border-radius: 12px; }
 .map svg { display: block; width: 100%; height: auto; }
-.map text { fill: var(--muted); font: 10px 'DM Sans', system-ui, sans-serif; }
+.map text { fill: var(--muted); font: 10px var(--mono); }
 .tables { display: flex; flex-direction: column; gap: 10px; overflow: auto; max-height: 460px; }
 table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; width: 100%; }
 th, td { padding: 3px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }

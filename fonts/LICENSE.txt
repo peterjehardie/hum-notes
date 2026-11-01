@@ -1,0 +1,5 @@
+Space Grotesk (spacegrotesk.woff2) — Copyright 2020 The Space Grotesk Project Authors.
+JetBrains Mono (jetbrainsmono.woff2) — Copyright 2020 The JetBrains Mono Project Authors.
+
+Both are licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org).
+Latin subsets as served by Google Fonts (fonts.google.com), fetched 2026-11-01.

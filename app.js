@@ -44,7 +44,8 @@ function applyTheme(v) {
   document.documentElement.dataset.theme = v;
   for (const b of $('theme').children) b.classList.toggle('on', b.dataset.v === v);
   const cs = getComputedStyle(document.documentElement);
-  for (const k of ['text', 'muted', 'accent', 'lane-black', 'lane-root', 'lane-fifth', 'trace', 'note', 'note-edge', 'grid', 'bar', 'wave', 'bk-note', 'bk-edge', 'bk-low', 'bk-low-edge', 'deg0', 'deg1', 'deg2', 'deg3', 'deg4', 'deg5', 'deg6', 'deg7'])
+  for (const k of ['text', 'muted', 'accent', 'rec', 'roll', 'panel', 'raise', 'line', 'lane-black', 'lane-root', 'lane-fifth', 'trace', 'note', 'note-edge', 'grid', 'bar', 'wave', 'bk-note', 'bk-edge', 'bk-low', 'bk-low-edge',
+    'deg0', 'deg1', 'deg2', 'deg3', 'deg4', 'deg5', 'deg6', 'deg7', 'on-deg', 'layer1', 'layer2', 'layer3', 'layer4'])
     colors[k] = cs.getPropertyValue('--' + k).trim();
 }
 (function loadSettings() {
@@ -99,7 +100,7 @@ function renderLegend() {
   const key = tonicKey();
   SCALES[key.mode].forEach((st, i) => {
     const el = document.createElement('i');
-    el.textContent = i + 1; el.style.background = colors['deg' + (i + 1)];
+    el.textContent = i + 1; el.style.background = colors['deg' + (i + 1)]; el.style.color = colors['on-deg'];
     el.title = `${i + 1} · ${DEGREE_NAMES[i]} · ${(usesFlats(key) ? FLAT_NAMES : NAMES)[pcOf(key.root + st)]}`;
     box.appendChild(el);
   });
@@ -237,50 +238,100 @@ $('monitor').onclick = () => setMonitor(!S.monitorOn);
 $('mon').addEventListener('input', () => S.monitorOn && setMonitor(true));
 
 // ---------- recording ----------
+// Hum takes are recorded in one of four record modes (Beat records a groove instead):
+//   new   – a fresh take; the old one stays in the history for Undo take
+//   next  – the last bar plays as a lead-in, then the new singing is added after the take as its next section
+//   layer – the take plays while you sing a second part; it becomes a layer that plays along with it
+//   punch – one bar before the start marker plays, then the new notes replace the score from the marker
+// For next, layer and punch the take stays in S.take and on screen; the new recording goes to S.recTake,
+// and S.recArm maps its clock onto the take's (take time = recording time + shift).
+S.recMode = 'new';
+S.history = [];
+const armed = () => S.recording && !!S.recArm;
+
+function recModeOk(mode) {
+  const tk = S.take, has = !!(tk && tk.points && tk.points.length);
+  if (mode === 'next' || mode === 'layer') return has;
+  if (mode === 'punch') return has && !!(tk.score && tk.score.tempo);
+  return true;
+}
+const REC_LABELS = { new: 'Record', next: 'Record next part', layer: 'Record layer', punch: 'Redo from marker' };
+function updateRecButton() {
+  const rec = S.recording, beat = S.recKind === 'beat';
+  if (!recModeOk(S.recMode)) setSeg('recMode', 'new');
+  for (const b of $('recMode').children) b.disabled = rec || beat || !recModeOk(b.dataset.v);
+  $('recLabel').textContent = rec ? 'Stop' : beat ? 'Record beat' : REC_LABELS[S.recMode];
+  $('record').classList.toggle('on', rec);
+}
+const REC_HINTS = {
+  new: '',
+  next: 'Next part: press Record. The last bar plays as a lead-in; sing what comes next and it is added as a new section',
+  layer: 'Layer: press Record. The take plays (from the start marker, if set) and you sing a second part over it',
+  punch: 'Redo from marker: click the roll where the new singing should start, then press Record',
+};
+segHandlers.recMode = () => {
+  updateRecButton();
+  if (REC_HINTS[S.recMode]) $('status').textContent = REC_HINTS[S.recMode] + (S.recMode === 'punch' ? '' : ' · wear headphones so the mic hears only you');
+};
+segHandlers.recKind = updateRecButton;
+
 function toggleRecord() {
   if (!S.recording) {
     if (S.play) stopPlay();
-    S.seg = new Segmenter(snap, renderNotes);
+    const arm = S.recArm;
+    S.seg = new Segmenter(snap, arm ? undefined : renderNotes);
     S.chunks = [];
-    if (S.recKind === 'beat' || S.punchArm) S.prevTake = S.take;
-    S.take = {
-      start: S.ctx.currentTime, end: null, notes: S.seg.notes, points: null, voice: null, tempoScale: 1, kind: S.recKind,
+    const rec = {
+      start: S.ctx.currentTime, end: null, notes: S.seg.notes, points: null, voice: null, tempoScale: 1, kind: arm ? arm.kind : S.recKind,
       grid: metro.on ? { bpm: metro.bpm, t0: metro.t0, beats: metro.beats } : null,
     };
-    if (S.recKind === 'hum' && S.grooveHum && S.groove) {
+    if (arm || S.recKind === 'beat') S.recTake = rec;
+    else {
+      pushHistory('the previous take');
+      S.take = rec; S.cursor = null; S.view.zoom = null;
+      ED.sel.clear(); ED.undo.length = 0; ED.redo.length = 0;
+    }
+    if (!arm && S.recKind === 'hum' && S.grooveHum && S.groove) {
       const t0 = S.ctx.currentTime + 0.05;
       grooveClock.start(S.ctx, S.ctx.destination, t0);
       // the groove's bars become the take's beat grid (one groove step = 1/steps of a beat)
-      S.take.grid = { bpm: S.groove.bpm, t0, beats: S.groove.beats };
+      rec.grid = { bpm: S.groove.bpm, t0, beats: S.groove.beats };
     }
-    if (S.punchArm) { S.take.kind = 'punch'; S.take.grid = S.punchArm.grid; S.punchArm = null; }
     S.recording = true;
-    S.view.mode = 'live';
+    S.view.mode = arm ? 'take' : 'live';
     S.node.port.postMessage({ rec: true });
     S.peakRms = 0;
-    $('status').textContent = 'Recording… press Stop when done';
-    $('record').textContent = '■ Stop'; $('record').classList.add('on');
+    $('status').textContent = arm ? arm.msg : 'Recording… press Stop (or Space) when done';
     renderNotes();
   } else {
-    S.take.end = S.ctx.currentTime;
+    (S.recTake || S.take).end = S.ctx.currentTime;
     S.recording = false;
     grooveClock.stop();
-    if (S.punchBus) { const b = S.punchBus; S.punchBus = null; b.gain.setTargetAtTime(0, S.ctx.currentTime, 0.05); setTimeout(() => b.disconnect(), 400); }
+    stopCue();
     S.node.port.postMessage({ rec: false });
-    $('record').textContent = '● Record again'; $('record').classList.remove('on');
   }
   updateButtons();
 }
-// One button: starts the mic if needed and records; stopping shows the full analysis.
+// the playback heard while recording over a take
+function stopCue() {
+  if (!S.cue) return;
+  clearTimeout(S.cue.timer);
+  const b = S.cue.bus;
+  b.gain.setTargetAtTime(0, S.ctx.currentTime, 0.05); setTimeout(() => b.disconnect(), 400);
+  S.cue = null;
+}
+// One button: starts the mic if needed and records in the chosen mode; stopping shows the full analysis.
 $('record').onclick = async () => {
   try {
     if (!S.listening) await startMic();
-    toggleRecord();
+    if (S.recording) { toggleRecord(); return; }
+    const mode = S.recKind === 'beat' ? 'new' : S.recMode;
+    if (mode === 'new') toggleRecord(); else await recordOver(mode);
   } catch (err) { $('status').textContent = 'Mic unavailable: ' + err.message; }
 };
 
 function finishTake() {
-  const tk = S.take, chunks = S.chunks;
+  const tk = S.recTake || S.take, chunks = S.chunks;
   S.chunks = null;
   if (!tk || !chunks) return;
   let n = 0;
@@ -289,18 +340,20 @@ function finishTake() {
   n = 0;
   for (const c of chunks) { data.set(c.audio, n); n += c.audio.length; }
   tk.voice = chunks.length ? { t0: chunks[0].t, sr: S.ctx.sampleRate, data } : null;
+  S.recTake = null;
   if (tk.kind === 'beat') { finishBeat(tk); return; }
   tk.points = S.points.filter(p => p.t >= tk.start && p.t <= tk.end).sort((a, b) => a.t - b.t);
+  if (S.recArm) { finishArm(tk); return; }
   trimTake(tk);
-  if (tk.kind === 'punch') { finishPunch(tk); return; }
   S.view.mode = 'take';
   retranscribe();
   saveTake();
   followTonic(tk);
+  updateRecButton(); renderParts();
   const nn = tk.notes.length, nh = tk.pt ? tk.pt.tracks.filter(t => t.k > 1).length : 0;
   $('status').textContent = nn
     ? `${nn} notes · ${nh} harmonics transcribed` + (tk.tempo ? ` · about ${Math.round(tk.tempo.bpm)} bpm` : '')
-      + (tk.trimmed > 0.3 ? ` · ${tk.trimmed.toFixed(1)} s of silence trimmed` : '')
+      + (tk.trimmed > 0.3 ? ` · ${tk.trimmed.toFixed(1)} s of silence trimmed` : '') + ' · next: Play, or record the Next part or a Layer'
     : `No clear pitch heard (loudest input ${Math.round(20 * Math.log10((S.peakRms || 1e-9)))} dB) — try singing closer to the mic`;
   if (!HOSTED) saveToDisk(tk);
 }
@@ -308,11 +361,356 @@ function finishTake() {
 $('clear').onclick = () => {
   if (S.recording) toggleRecord();
   if (S.play) stopPlay();
-  S.take = null; S.seg = null;
+  pushHistory('the cleared take');
+  S.take = null; S.seg = null; S.cursor = null; S.view.zoom = null;
   S.view.mode = 'live';
-  renderNotes(); updateButtons(); updateTempo();
+  renderNotes(); renderPartials(); updateScoreInfo(); renderEditBar(); updateButtons(); updateTempo(); renderParts();
   saveTake();
+  $('status').textContent = 'Take cleared · Undo take brings it back';
 };
+
+// ---------- take history: Undo take ----------
+// A copy of the take is kept before every recording that changes it (new take, next part, layer,
+// redo from marker) and before Clear, so a recording that went wrong can be thrown away.
+function pushHistory(label) {
+  const tk = S.take;
+  if (!tk || !tk.points) return;
+  const copy = o => o == null ? o : JSON.parse(JSON.stringify(o));
+  S.history.push({ label, take: {
+    ...tk, edited: copy(tk.edited), sections: copy(tk.sections), chordEdits: copy(tk.chordEdits), chordPicks: copy(tk.chordPicks),
+    taps: tk.taps && tk.taps.slice(), layers: tk.layers && tk.layers.map(L => ({ ...L })), muted: tk.muted && new Set(tk.muted), score: null,
+  } });
+  if (S.history.length > 8) S.history.shift();
+}
+function undoTake() {
+  const h = S.history.pop();
+  if (!h || S.recording) return;
+  if (S.play) stopPlay();
+  S.take = h.take; S.cursor = null; S.view.zoom = null;
+  ED.sel.clear(); ED.undo.length = 0; ED.redo.length = 0;
+  S.view.mode = 'take';
+  retranscribe(); renderParts(); renderEditBar(); saveTake(); updateButtons();
+  $('status').textContent = 'Back to ' + h.label + (S.history.length ? ` · ${S.history.length} more step${S.history.length > 1 ? 's' : ''} back` : '');
+}
+$('undoRec').onclick = undoTake;
+
+// ---------- recording over a take: next part, layer, redo from marker ----------
+// Take time <-> beats on the score's grid (follows the tracked beat when the tempo drifts).
+const beatAt = t => { const sc = S.take.score; return sc.beatMap ? beatOf(sc.beatMap, t) : (t - sc.tempo.t0) / (60 / sc.tempo.bpm); };
+async function prepareSounds() {
+  const inst = v => !['voice', 'plain', 'profile'].includes(v);
+  const tk = S.take;
+  const secOrch = (tk && tk.sections || []).some(s => MOODS[s.mood] && MOODS[s.mood].sound === 'orchestra');
+  const layerInst = (tk && tk.layers || []).some(L => !L.muted && inst(L.sound));
+  if (S.hear !== 'voice' && (S.sound === 'orchestra' || secOrch || inst($('melSound').value) || layerInst)) await ensureOrchestra();
+}
+// Schedules the cue (a count-in, then the take or a lead-in into the new part), arms the recorder
+// with the clock mapping and starts recording.
+async function recordOver(mode) {
+  const A = S.take;
+  if (!recModeOk(mode)) return;
+  const ctx = await ensureCtx();
+  if (S.play) stopPlay();
+  if (mode === 'punch' && S.cursor == null) { $('status').textContent = REC_HINTS.punch; return; }
+  await prepareSounds();
+  const sc = A.score, plan = sc && sc.tempo ? backingPlan() : null;
+  const beats = plan ? plan.meter.beats : 4, bt = plan ? b => beatTime(b) : null;
+  let from, marker, until;
+  if (mode === 'layer') {
+    const r = playRegion();
+    marker = r.a; until = r.b;
+    from = plan ? bt(beatAt(marker) - beats) : marker - 0.8;
+  } else if (mode === 'next') {
+    if (plan) {
+      // the new part starts on the first bar line after the last note
+      const lastEnd = Math.max(...sc.notes.map(n => sEnd(n)), plan.segs.length ? beatTime(plan.segs[plan.segs.length - 1].start) : -Infinity);
+      const first = plan.segs.length ? plan.segs[0].start : plan.meter.offset;
+      const bar = Math.ceil((beatAt(lastEnd) - first) / beats - 0.02);
+      marker = bt(first + bar * beats); from = bt(first + (bar - 1) * beats);
+    } else { marker = A.end + 0.25; from = Math.max(A.start, A.end - 3); }
+    until = marker + 600;
+  } else {
+    marker = S.cursor; from = plan ? bt(beatAt(marker) - beats) : marker - 2; until = marker + 600;
+  }
+  const at = ctx.currentTime + 0.25, tmap = t => at + (t - from);
+  const lat = (ctx.outputLatency || 0) + (ctx.baseLatency || 0);
+  const bus = ctx.createGain(); bus.connect(ctx.destination);
+  // count-in clicks over the lead-in bar
+  if (plan) for (let k = 0; k < beats; k++) click(tmap(bt(beatAt(from) + k)), k === 0, bus);
+  if (mode === 'layer') scheduleRegion(ctx, bus, tmap(marker), marker, until);
+  else {
+    scheduleRegion(ctx, bus, tmap(from), from, marker);
+    if (plan) {
+      // under the new singing: the backing without the melody (the rest of it when redoing), and the beat
+      // going on past the end in the last section's mood; or a quiet click when nothing keeps time
+      const keepsTime = (S.hear === 'score' || S.hear === 'both') && S.acc.rhythm;
+      const span = backingSpan(), endT = span ? span.to : marker, tailTo = Math.max(endT, marker) + 32 * beats * spb();
+      const mel = S.acc.melody;
+      S.acc.melody = false;
+      try {
+        if (S.hear === 'score' || S.hear === 'both') {
+          if (marker < endT - 1e-3) scheduleBacking(ctx, bus, tmap, marker, endT);
+          const secs = sectionsOf(), li = secs ? secs.length - 1 : null, a = Math.max(marker, endT);
+          const tail = withSection(secs && secs[li], () => backingEvents(a, tailTo));
+          tail.forEach(e => { e.sec = li; });
+          scheduleBacking(ctx, bus, tmap, a, tailTo, tail);
+        }
+      } finally { S.acc.melody = mel; }
+      if (!keepsTime) for (let k = 0; k < 32 * beats; k++) click(tmap(bt(beatAt(marker) + k)), k % beats === 0, bus, 0.55);
+    }
+  }
+  const hp = ' · headphones keep the playback out of the mic';
+  const msg = { next: 'Lead-in… sing the next part after the count, Stop when done', layer: 'Count-in… sing your layer along with the take', punch: 'Lead-in… sing from the marker, Stop when done' }[mode] + hp;
+  S.recArm = { kind: mode, from, marker, until, at, lat, shift: from - at - lat, msg };
+  const timer = mode === 'layer' ? setTimeout(() => { if (S.recording && S.recArm && S.recArm.at === at) toggleRecord(); }, (tmap(until) - ctx.currentTime + 0.8) * 1000) : 0;
+  S.cue = { bus, timer };
+  toggleRecord();
+  updateRecButton();
+}
+// where the recording is, on the take's clock (what is being heard right now)
+const armHead = now => S.recArm.from + (now - S.recArm.at) - S.recArm.lat;
+
+// The new recording, moved onto the take's clock, goes where its mode says.
+function finishArm(B) {
+  const arm = S.recArm, A = S.take;
+  S.recArm = null;
+  updateRecButton();
+  if (!A || !arm) return;
+  const pts = B.points.map(p => ({ ...p, t: p.t + arm.shift })).filter(p => p.t >= arm.marker - 0.15);
+  const voiced = pts.filter(p => !isNaN(p.m));
+  if (voiced.length < 15) {
+    $('status').textContent = (arm.kind === 'layer' ? 'Nothing sung over the take' : 'Nothing sung after the lead-in') + ' — try again';
+    renderNotes(); updateButtons(); return;
+  }
+  const s = Math.max(arm.marker - 0.15, voiced[0].t - 0.25), e = voiced[voiced.length - 1].t + 0.35;
+  const part = {
+    points: pts.filter(p => p.t >= s && p.t <= e), start: s, end: e,
+    voice: B.voice ? { t0: B.voice.t0 + arm.shift, sr: B.voice.sr, data: B.voice.data } : null,
+  };
+  if (arm.kind === 'layer') addLayer(A, part);
+  else if (arm.kind === 'next') appendPart(A, part, arm.marker);
+  else replaceFromMarker(A, part, arm.marker);
+  updateButtons(); updateRecButton(); renderParts();
+}
+
+// Drop caches that were worked out from the take's recording.
+function freshAudio(tk) {
+  for (const k of ['frames', 'env', 'pt', 'rendered', 'tune', 'playBuf', 'playBufSrc', 'line', 'lineRender', 'harm']) tk[k] = null;
+}
+function resample(x, from, to) {
+  const n = Math.round(x.length * to / from), y = new Float32Array(n), r = from / to;
+  for (let i = 0; i < n; i++) { const p = i * r, k = Math.floor(p), f = p - k; y[i] = (x[k] || 0) * (1 - f) + (x[k + 1] || 0) * f; }
+  return y;
+}
+// The take's recording with [from, to) replaced by another recording (both on the take's clock),
+// short crossfades at the joins, long enough to hold both.
+function spliceVoice(A, B, from, to) {
+  if (!B) return A;
+  if (!A) return B;
+  const sr = A.sr, bd = B.sr === sr ? B.data : resample(B.data, B.sr, sr);
+  const aEnd = A.t0 + A.data.length / sr, bEnd = B.t0 + bd.length / sr, open = to === Infinity;
+  const t0 = Math.min(A.t0, Math.max(B.t0, from));
+  const t1 = open ? Math.max(aEnd, bEnd) : Math.max(aEnd, Math.min(bEnd, to));
+  const out = new Float32Array(Math.max(1, Math.round((t1 - t0) * sr)));
+  const ia = Math.round((A.t0 - t0) * sr);
+  out.set(A.data.subarray(0, Math.max(0, Math.min(A.data.length, out.length - ia))), ia);
+  const i0 = Math.max(0, Math.round((from - t0) * sr)), i1 = Math.min(out.length, open ? out.length : Math.round((to - t0) * sr));
+  const ib = Math.round((t0 - B.t0) * sr), fade = Math.max(1, Math.round(0.012 * sr));
+  for (let i = i0; i < i1; i++) {
+    const j = i + ib, b = j >= 0 && j < bd.length ? bd[j] : 0;
+    const w = Math.min(1, (i - i0) / fade, open ? 1 : (i1 - i) / fade);
+    out[i] = out[i] * (1 - w) + b * w;
+  }
+  return { t0, sr, data: out };
+}
+// Notes for singing that joins the score: transcribed in the score's key, on the score's beat grid.
+function notesOnScoreGrid(points, end, sc) {
+  const res = (sc && sc.res) || sres();
+  const grid = sc && sc.tempo && !sc.beatMap ? { bpm: sc.tempo.bpm, t0: sc.tempo.t0, beats: sc.tempo.beats || 4 } : null;
+  const b = buildScore(points, {
+    tuning: $('tuningSel').value, key: sc && sc.key ? `${sc.key.root}:${sc.key.mode}` : 'auto', end, res, grid, tempoScale: 1, detail: +$('sdetail').value,
+  });
+  if (sc && sc.beatMap) quantizeRhythm(b.notes, sc.beatMap, { res });
+  return b.notes;
+}
+
+// Next part: the new singing continues the take (recording and pitch line joined), the take is read
+// again as a whole, and the new part gets its own section so it can have its own mood.
+function appendPart(A, part, marker) {
+  pushHistory('the take before the next part');
+  const cut = Math.min(marker, part.start);
+  A.points = A.points.filter(p => p.t < cut).concat(part.points);
+  A.voice = spliceVoice(A.voice, part.voice, cut, Infinity);
+  A.end = part.end;
+  freshAudio(A);
+  if (A.edited && A.score && A.score.key) {
+    // your edits stay; the new notes join them on the same grid
+    const res = A.score.res || sres(), m0 = edStep(marker) - Math.round(res / 2);
+    const fresh = notesOnScoreGrid(part.points, part.end, A.score).filter(n => n.qs >= m0);
+    for (const n of fresh) n.src = { start: n.start, end: n.end };
+    A.edited = { ...A.edited, notes: [...A.edited.notes, ...fresh] };
+  }
+  S.view.mode = 'take';
+  retranscribe();
+  const sec = addSectionAt(marker);
+  saveTake();
+  const added = A.score ? A.score.notes.filter(n => sStart(n) >= marker - 0.2).length : 0;
+  $('status').textContent = `Next part added: ${added} notes` + (sec ? ` · section ${sec.name} starts at bar ${sec.bar + 1} (click it below to give it a mood)` : '') + ' · Undo take removes it';
+}
+function addSectionAt(t) {
+  const plan = backingPlan(), sc = S.take.score;
+  if (!plan || !plan.segs.length || !sc.tempo) return null;
+  const beats = plan.meter.beats, first = plan.segs[0].start;
+  const bar = Math.round((beatAt(t) - first) / beats);
+  if (bar <= 0) return null;
+  const list = (S.take.sections || []).map(x => ({ ...x }));
+  if (!list.length) list.push({ id: 1, name: 'A', bar: 0, mood: '', fill: true });
+  if (!list.some(x => x.bar === bar)) list.push({ id: Date.now(), name: nextSectionName(list), bar, mood: '', fill: true });
+  S.take.sections = list;
+  renderSections();
+  return list.find(x => x.bar === bar);
+}
+
+// Redo from marker: the new notes replace the score from the marker to where the singing stopped;
+// the recording and pitch line are replaced over the same stretch.
+function replaceFromMarker(A, part, marker) {
+  const sc = A.score, res = sc.res || 2;
+  const fresh = notesOnScoreGrid(part.points, part.end, sc).filter(n => n.qs >= edStep(marker) - Math.round(res / 2));
+  if (!fresh.length) { $('status').textContent = 'Nothing sung after the marker — try again'; renderNotes(); return; }
+  pushHistory('the take before the redo');
+  const cut = Math.min(marker, part.start), stop = part.end;
+  A.points = A.points.filter(p => p.t < cut || p.t > stop).concat(part.points).sort((a, b) => a.t - b.t);
+  A.voice = spliceVoice(A.voice, part.voice, cut, stop);
+  if (part.end > A.end) A.end = part.end;
+  freshAudio(A);
+  const q0 = Math.max(edStep(marker), Math.min(...fresh.map(n => n.qs))), q1 = Math.max(...fresh.map(n => n.qe));
+  beginEdit();
+  const kept = sc.notes.filter(n => n.qe <= q0 || n.qs >= q1), replaced = sc.notes.length - kept.length;
+  for (const n of fresh) { if (n.qs < q0) n.qs = q0; n.src = { start: n.start, end: n.end }; }
+  sc.notes = [...kept, ...fresh];
+  ED.sel = new Set(fresh);
+  S.view.mode = 'take';
+  commitEdit();
+  retranscribe();
+  $('status').textContent = `Redone from the marker: ${fresh.length} new notes${replaced ? `, replacing ${replaced}` : ''} · Ctrl+Z undoes the notes, Undo take the recording too`;
+}
+
+// ---------- layers: parts sung on top of the take ----------
+// Each layer keeps its own recording and pitch line on the take's clock, and its notes on the
+// score's grid; it plays along (its voice, or its notes on its own sound) and can be muted.
+const LAYER_SOUNDS = [['voice', 'My voice synth'], ['plain', 'Plain tone'], ['flute', 'Flute'], ['clarinet', 'Clarinet'], ['oboe', 'Oboe'],
+  ['violins', 'Violins'], ['cellos', 'Cellos'], ['horn', 'Horn'], ['trumpet', 'Trumpet'], ['piano', 'Piano']];
+const soundName = v => (LAYER_SOUNDS.find(x => x[0] === v) || [v, v === 'profile' ? 'My voice profile' : v])[1];
+function transcribeLayer(tk, L) {
+  if (L.voice && !L.frames) L.frames = analyseSpectrum(L.voice, L.points);
+  L.notes = notesOnScoreGrid(L.points, L.end, tk.score);
+  if (L.frames) for (const n of L.notes) n.env = voiceEnvelope(L.frames, n.start, n.end);
+}
+function addLayer(A, part) {
+  pushHistory('the take before the layer');
+  const layers = A.layers || [], used = new Set(layers.map(L => L.colour));
+  const colour = [1, 2, 3, 4].find(c => !used.has(c)) || layers.length % 4 + 1;
+  let k = layers.length + 1;
+  while (layers.some(L => L.name === 'Layer ' + k)) k++;
+  const L = { id: Date.now(), name: 'Layer ' + k, colour, ...part, gain: 1, muted: false, sound: 'voice' };
+  transcribeLayer(A, L);
+  A.layers = [...layers, L];
+  saveTake();
+  const key = scoreKey();
+  $('status').textContent = `${L.name}: ${L.notes.length} notes` + (key && L.notes.length ? ` (${L.notes.slice(0, 5).map(n => spell(n.midi + transpose(), key)).join(' ')}${L.notes.length > 5 ? '…' : ''})` : '')
+    + ' · it plays along; click it under Parts to change its sound or mute it';
+}
+function layerBuffer(ctx, L) {
+  if (!L.playBuf) {
+    const d = L.voice.data;
+    let pk = 0;
+    for (const v of d) pk = Math.max(pk, Math.abs(v));
+    const g = pk > 1e-6 ? Math.min(0.9 / pk, 60) : 1, buf = ctx.createBuffer(1, d.length, L.voice.sr), x = new Float32Array(d.length);
+    for (let i = 0; i < d.length; i++) x[i] = d[i] * g;
+    buf.copyToChannel(x, 0);
+    L.playBuf = buf;
+  }
+  return L.playBuf;
+}
+// Layers for take time [a, b), started at audio time `at`: their voices (My voice, Sung line, Both)
+// and their notes (Score, Both).
+function scheduleLayers(ctx, bus, at, a, b) {
+  const hear = S.hear;
+  for (const L of S.take.layers || []) {
+    if (L.muted) continue;
+    const g = ctx.createGain(); g.gain.value = L.gain; g.connect(bus);
+    if (hear !== 'score' && L.voice) {
+      const src = ctx.createBufferSource(), lg = ctx.createGain();
+      src.buffer = layerBuffer(ctx, L); lg.gain.value = hear === 'both' ? 0.7 : 0.9;
+      src.connect(lg).connect(g);
+      const off = a - L.voice.t0;
+      if (b - a + Math.min(0, off) > 0.01) off >= 0 ? src.start(at, off, b - a) : src.start(at - off, 0, b - a + off);
+    }
+    if (hear === 'score' || hear === 'both') for (const n of L.notes || []) {
+      const s = sStart(n), e = sEnd(n);
+      if (s >= a - 1e-6 && s < b) playScoreNote(ctx, n, at + (s - a), g, { s, e: Math.min(e, b) }, L.sound);
+    }
+  }
+}
+
+// The Parts line under the roll: the main take and each layer.
+function renderParts() {
+  const box = $('parts');
+  box.innerHTML = '';
+  const tk = S.take;
+  if (!tk || !tk.points) return;
+  const chip = (cls, colour, name, sub, title, onclick) => {
+    const el = document.createElement('div');
+    el.className = 'chip part' + cls; el.style.setProperty('--partc', colour);
+    el.innerHTML = `<i class="sw"></i><b>${name}</b><span>${sub}</span>`;
+    el.title = title; el.onclick = () => onclick(el);
+    box.appendChild(el);
+  };
+  const mainNotes = tk.score ? tk.score.notes.length : tk.notes.length;
+  chip(S.acc.melody ? '' : ' off', 'var(--accent)', 'Main', `${soundName($('melSound').value)} · ${mainNotes}`, 'The take: click to choose what plays its melody', el => openMainMenu(el));
+  for (const L of tk.layers || []) {
+    chip(L.muted ? ' off' : '', `var(--layer${L.colour})`, L.name, `${soundName(L.sound)} · ${(L.notes || []).length}${L.gain !== 1 ? ' · ' + Math.round(L.gain * 100) + '%' : ''}`,
+      'Click to change its sound, level, mute or delete it', el => openLayerMenu(L.id, el));
+  }
+  const add = (text, mode, title) => {
+    const b = document.createElement('button');
+    b.className = 'small'; b.textContent = text; b.title = title;
+    b.onclick = () => { setSeg('recMode', mode); segHandlers.recMode(); };
+    box.appendChild(b);
+  };
+  add('+ Layer', 'layer', 'Record a part on top of the take');
+  add('+ Next part', 'next', 'Record what comes after the take');
+}
+function openMainMenu(anchor) {
+  openPopover(anchor, pop => {
+    const again = () => { renderParts(); openMainMenu(anchor); };
+    popRow(pop, 'Played by', [...LAYER_SOUNDS, ['profile', 'My voice profile']].map(([v, text]) => ({ text, on: $('melSound').value === v,
+      disabled: v === 'profile' && !S.profile, do: () => { $('melSound').value = v; $('melSound').dispatchEvent(new Event('change', { bubbles: true })); again(); } })));
+    popRow(pop, 'In Score', [{ text: S.acc.melody ? '✓ plays' : 'silent', on: S.acc.melody, title: 'The melody in Score playback (also under Backing → What plays)',
+      do: () => { document.querySelector('#accToggles [data-acc="melody"]').click(); again(); } }]);
+  });
+}
+function openLayerMenu(id, anchor) {
+  const tk = S.take, L = tk && (tk.layers || []).find(x => x.id === id);
+  if (!L) return;
+  const change = f => { f(); saveTake(); renderParts(); openLayerMenu(id, anchor); };
+  openPopover(anchor, pop => {
+    popRow(pop, 'Played by', LAYER_SOUNDS.map(([v, text]) => ({ text, on: L.sound === v, do: () => change(() => { L.sound = v; if (!['voice', 'plain'].includes(v)) ensureOrchestra(); }) })));
+    popRow(pop, 'Level', [
+      { text: '−', do: () => change(() => { L.gain = Math.max(0, Math.round((L.gain - 0.1) * 10) / 10); }) },
+      { text: Math.round(L.gain * 100) + '%', disabled: true },
+      { text: '+', do: () => change(() => { L.gain = Math.min(1.5, Math.round((L.gain + 0.1) * 10) / 10); }) },
+    ]);
+    popRow(pop, '', [
+      { text: L.muted ? 'Unmute' : 'Mute', on: L.muted, do: () => change(() => { L.muted = !L.muted; }) },
+      { text: 'Delete layer', title: 'Undo take brings it back', do: () => {
+        pushHistory('the take before deleting ' + L.name);
+        tk.layers = tk.layers.filter(x => x !== L); saveTake(); renderParts(); closePopover(); updateButtons();
+        $('status').textContent = L.name + ' deleted · Undo take brings it back';
+      } },
+    ]);
+  });
+}
 
 // ---------- groove: a drum pattern from beatboxing, tapping or clapping (rhythm.js) ----------
 const clonePattern = p => JSON.parse(JSON.stringify(p));
@@ -327,7 +725,6 @@ for (const name of Object.keys(PATTERN_PRESETS)) $('presetSel').add(new Option(n
 // A beat take becomes the groove; the melody take stays as it was.
 function finishBeat(tk) {
   const g = tk.voice && rhythmGrid(classifyHits(detectHits(tk.voice.data, tk.voice.sr)));
-  S.take = S.prevTake || null; S.prevTake = null;
   renderNotes(); updateButtons(); updateScoreInfo();
   if (!g) { $('status').textContent = 'No clear rhythm heard — try louder, separate hits'; return; }
   S.groove = clonePattern(g.loop || g);
@@ -410,7 +807,7 @@ function drawGroove() {
   const gut = 96, top = 30, rowH = Math.min(70, (H - top - 20) / G_LANES.length), cw = (W - gut - 10) / g.length;
   S.lastGrid = { gut, top, rowH, cw };
   const playing = grooveClock.now();
-  g2.font = '12px "DM Sans", sans-serif'; g2.textBaseline = 'middle';
+  g2.font = '12px "Space Grotesk", sans-serif'; g2.textBaseline = 'middle';
   for (let s = 0; s <= g.length; s++) {
     const x = gut + s * cw;
     g2.fillStyle = s % (g.steps * g.beats) === 0 ? colors.bar : s % g.steps === 0 ? colors.muted : colors.grid;
@@ -502,8 +899,9 @@ function retranscribe() {
   if (!tk.edited && !tk.grid && typeof trackBeats === 'function') applyRhythm2(tk);
   if (tk.edited) Object.assign(tk.score, { notes: tk.edited.notes, tempo: tk.edited.tempo, unit: tk.edited.unit, res: tk.edited.res, key: tk.edited.key, beatMap: tk.edited.beatMap || null, meterFixed: tk.edited.meterFixed || null });
   if (tk.frames) for (const n of tk.score.notes) if (!n.env) n.env = voiceEnvelope(tk.frames, n.src ? n.src.start : n.start, n.src ? n.src.end : n.end);
+  if (tk.layers) for (const L of tk.layers) transcribeLayer(tk, L);
   updatePartials();
-  renderNotes(); updateTempo(); updateButtons(); updateScoreInfo();
+  renderNotes(); updateTempo(); updateButtons(); updateScoreInfo(); renderParts();
   if (typeof renderEditBar === 'function') renderEditBar();
 }
 
@@ -535,7 +933,7 @@ function applyRhythm2(tk) {
 }
 
 // ---------- score layer: clean notes for composing ----------
-const scoreView = () => S.layer === 'score' && S.take && S.take.score && !S.recording;
+const scoreView = () => S.layer === 'score' && S.take && S.take.score && (!S.recording || armed());
 const transpose = () => Math.round(+$('transpose').value || 0);
 const scoreKey = () => { const k = S.take && S.take.score && S.take.score.key; return k && { ...k, root: pcOf(k.root + transpose()) }; };
 const stepTimeOf = step => { const sc = S.take.score; return sc.beatMap ? beatTimeOf(sc.beatMap, step / sc.res) : sc.tempo.t0 + step * sc.unit; };
@@ -544,7 +942,7 @@ const sEnd = n => { const sc = S.take.score; return sc.tempo ? stepTimeOf(n.qe) 
 const scoreLen = n => S.take.score.tempo ? valueName(n.qe - n.qs, S.take.score.res || sres()) : (n.end - n.start).toFixed(2) + 's';
 function updateScoreInfo() {
   const sc = S.take && S.take.score;
-  if (!sc) { $('scoreInfo').textContent = ''; renderGrooveCtl(); return; }
+  if (!sc) { $('scoreInfo').textContent = ''; $('backingOff').hidden = false; $('backing').hidden = true; renderLegend(); renderGrooveCtl(); renderSections(); renderChords(); return; }
   const parts = [];
   if (sc.key) parts.push(keyName(scoreKey()));
   if (sc.tempo) parts.push(Math.round(sc.tempo.bpm) + ' bpm' + (sc.tempo.source === 'your taps' ? ' (your taps)' : sc.beatMap && sc.tempo.drift > 0.25 ? ' (follows your tempo)' : ''));
@@ -568,7 +966,7 @@ function updateScoreInfo() {
   }
   renderLegend();
   const show = S.layer === 'score';
-  $('backing').hidden = !show; $('chords').hidden = !show;
+  $('backing').hidden = !show; $('backingOff').hidden = show; $('chords').hidden = !show;
   renderGrooveCtl();
   renderChords();
   renderSections();
@@ -595,10 +993,10 @@ function renderScore() {
   }
 }
 // One score note: clean at Style 0; Style blends in the sung timing, pitch curve and loudness.
-function playScoreNote(ctx, n, at, out, timing) {
+function playScoreNote(ctx, n, at, out, timing, sound) {
   const st = +$('style').value, p = n.perf, T = transpose();
   const s = timing ? timing.s : n.start, e = timing ? timing.e : n.end;
-  const mel = $('melSound').value;
+  const mel = sound || $('melSound').value;
   if (mel === 'profile' && profileReady()) {
     try {
       const src = ctx.createBufferSource(), g = ctx.createGain();
@@ -613,7 +1011,7 @@ function playScoreNote(ctx, n, at, out, timing) {
     return;
   }
   const note = { midi: n.midi + T, offset: 0, curve: p.curve, amp: p.amp, bend: null, start: p.start, end: p.end, env: n.env };
-  tone(ctx, note, at, (e - s) / Math.max(1e-3, p.end - p.start), out, st);
+  tone(ctx, note, at, (e - s) / Math.max(1e-3, p.end - p.start), out, st, mel);
 }
 segHandlers.layer = () => { renderNotes(); renderPartials(); updateScoreInfo(); renderGrooveCtl(); renderEditBar(); };
 segHandlers.colours = () => { renderNotes(); renderLegend(); };
@@ -1171,7 +1569,7 @@ function renderSections() {
   add.title = 'Start a new section at the bar where the start marker is (click the roll to set it)';
   add.onclick = () => {
     if (S.cursor == null) { $('status').textContent = 'Click the roll where the new section should start, then + Section at marker'; return; }
-    const first = plan.segs[0].start, bar = Math.max(0, Math.floor(((S.cursor - S.take.score.tempo.t0) / spb() - first) / beats + 1e-6));
+    const first = plan.segs[0].start, bar = Math.max(0, Math.floor((beatAt(S.cursor) - first) / beats + 1e-6));
     const list = S.take.sections || (S.take.sections = []);
     if (!list.length) list.push({ id: 1, name: 'A', bar: 0, mood: '', fill: true });
     if (list.some(s => s.bar === bar)) return;
@@ -1194,12 +1592,12 @@ function openSectionMenu(id, anchor) {
 }
 
 // Schedule backing (and the melody) for take time [from, to); tAt maps take time to audio time.
-function scheduleBacking(ctx, out, tAt, from, to) {
+function scheduleBacking(ctx, out, tAt, from, to, events) {
   const lvl = Math.pow(+$('bvol').value, 1.5);
   let orch = null;
   if (orchestraReady) { orch = ctx.createGain(); orch.gain.value = 1.2 * lvl; orch.connect(out); }
   const secs = sectionsOf();
-  for (const e of allEvents(from, to)) withSection(secs && e.sec != null ? secs[e.sec] : null, () => scheduleOne(e));
+  for (const e of events || allEvents(from, to)) withSection(secs && e.sec != null ? secs[e.sec] : null, () => scheduleOne(e));
   function scheduleOne(e) {
     const at = tAt(e.t);
     if (orch && S.sound === 'orchestra' && orchestral(ctx, orch, e, at)) return;
@@ -1493,15 +1891,14 @@ function scheduleSungLine(ctx, out, at, from, to) {
     br.connect(bp).connect(bg).connect(out); br.start(start); br.stop(start + dur + 0.05);
   }
 }
-segHandlers.hear = () => { $('lineCtl').hidden = S.hear !== 'line'; };
-$('lineCtl').hidden = S.hear !== 'line';
 
 // ---------- main transport: Play (with Loop) plays what Hear says, from the start marker ----------
 // Score view plays whole bars of the score; the start marker (click the roll) moves the start.
 function playRegion() {
   const tk = S.take, span = scoreView() && backingSpan();
   let a = span ? span.from : tk.start;
-  const b = span ? span.to : tk.end;
+  let b = span ? span.to : tk.end;
+  for (const L of tk.layers || []) if (!L.muted) b = Math.max(b, L.end);
   if (S.cursor != null && S.cursor > a && S.cursor < b - 0.2) a = S.cursor;
   return { a, b };
 }
@@ -1523,6 +1920,7 @@ function scheduleRegion(ctx, bus, at, a, b) {
     if (scoreView()) scheduleBacking(ctx, bus, t => at + (t - a), a, b);
     else for (const n of tk.notes) if (n.start >= a && n.start < b) tone(ctx, n, at + (n.start - a), 1, bus);
   }
+  scheduleLayers(ctx, bus, at, a, b);
 }
 async function startMain(btn) {
   const ctx = await ensureCtx();
@@ -1535,9 +1933,7 @@ async function startMain(btn) {
     btn.textContent = '■ Stop'; btn.classList.add('on');
     return;
   }
-  const mel = $('melSound').value;
-  const secOrch = (S.take && S.take.sections || []).some(s => MOODS[s.mood] && MOODS[s.mood].sound === 'orchestra');
-  if (S.hear !== 'voice' && (S.sound === 'orchestra' || secOrch || !['voice', 'plain', 'profile'].includes(mel))) await ensureOrchestra();
+  await prepareSounds();
   const { a, b } = playRegion(), len = Math.max(0.2, b - a);
   // looping the score keeps the mic on, so you can hum along and see how you sit on the chords
   if (S.loop && S.hear !== 'voice' && scoreView() && !S.listening) { try { await startMic(); } catch {} }
@@ -1611,9 +2007,23 @@ function scoreHarmonics(tk) {
 }
 const centsText = n => Math.abs(n.offset) >= 0.03 ? (n.offset > 0 ? '+' : '') + Math.round(n.offset * 100) + '¢' : '';
 // One row per kept harmonic: its label (click to mute), then its own transcribed notes.
+S.harmOpen = (() => { try { return localStorage.getItem('hum-harm') === '1'; } catch { return false; } })();
 function renderPartials() {
   const box = $('ptracks');
   box.innerHTML = '';
+  fillPartials(box);
+  // the rows are many and specialised: folded behind one button
+  const row = $('harmRow'), n = box.children.length;
+  row.innerHTML = '';
+  box.hidden = !S.harmOpen;
+  if (!n) return;
+  const b = document.createElement('button');
+  b.className = 'small led' + (S.harmOpen ? ' on' : ''); b.textContent = `Harmonics (${n})`;
+  b.title = 'Show or hide the harmonic lines: the separate tones inside your voice, each written out as notes';
+  b.onclick = () => { S.harmOpen = !S.harmOpen; try { localStorage.setItem('hum-harm', S.harmOpen ? '1' : '0'); } catch {} renderPartials(); };
+  row.appendChild(b);
+}
+function fillPartials(box) {
   const tk = S.take;
   if (scoreView()) { renderScoreHarmonics(box); return; }
   if (!partialsOn() || !tk || !tk.pt) return;
@@ -1689,9 +2099,12 @@ function updateButtons() {
   $('clear').disabled = !S.take;
   $('save').disabled = !(S.take && S.take.voice && !S.recording);
   $('save').textContent = S.take && S.take.savedAs ? '✓ Saved' : 'Save';
+  $('undoRec').disabled = !S.history.length || S.recording;
+  $('undoRec').title = S.history.length ? 'Back to ' + S.history[S.history.length - 1].label : 'Nothing to undo yet';
+  updateRecButton();
 }
 
-const gridOn = () => S.rhythm === 'grid' && S.take && S.take.tempo && !S.recording;
+const gridOn = () => S.rhythm === 'grid' && S.take && S.take.tempo && (!S.recording || armed());
 const qTime = (n, which) => S.take.tempo.t0 + (which === 'e' ? n.qe : n.qs) * S.take.unit;
 const noteStart = n => gridOn() ? qTime(n, 's') : n.start;
 const noteEnd = n => gridOn() ? qTime(n, 'e') : n.end;
@@ -1742,10 +2155,10 @@ function voiceHarm(env, midi) {
   if (!cache.has(key)) cache.set(key, Float32Array.from(voiceHarmonics(env, midiToHz(key))));
   return cache.get(key);
 }
-function tone(ctx, n, t, stretch, out, expr) {
+function tone(ctx, n, t, stretch, out, expr, sound) {
   const dur = (n.end - n.start) * stretch, fl = expr ?? +$('flourish').value;
   const o = ctx.createOscillator(), g = ctx.createGain(), dyn = ctx.createGain(), lp = ctx.createBiquadFilter();
-  const mel = $('melSound').value, env = mel === 'voice' && (n.env || (S.take && S.take.env));
+  const mel = sound || $('melSound').value, env = mel === 'voice' && (n.env || (S.take && S.take.env));
   const harm = env ? voiceHarm(env, n.midi + (n.offset || 0)) : mel === 'plain' ? null : S.timbre === 'voice' && (n.harm || (S.take && S.take.harm));
   if (harm) o.setPeriodicWave(waveFor(ctx, harm)); else o.type = 'triangle';
   const off = n.offset || 0, k = n.bend ? 1 : fl;
@@ -1976,12 +2389,12 @@ $('dvol').addEventListener('input', () => S.drone && S.drone.out.gain.setTargetA
 
 // ---------- metronome ----------
 const metro = { on: false, t0: 0, next: 0, n: 0, bpm: 90, beats: 4, timer: 0 };
-function click(t, accent) {
+function click(t, accent, out, level = 1) {
   const ctx = S.ctx, o = ctx.createOscillator(), g = ctx.createGain();
   o.frequency.value = accent ? 1760 : 1175;
-  const lvl = Math.pow(+$('mvol').value, 2) * (accent ? 0.5 : 0.32);
+  const lvl = Math.max(0.05, Math.pow(+$('mvol').value, 2)) * (accent ? 0.5 : 0.32) * level;
   g.gain.setValueAtTime(lvl, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 0.05);
+  o.connect(g).connect(out || ctx.destination); o.start(t); o.stop(t + 0.05);
 }
 function metroTick() {
   const spb = 60 / metro.bpm;
@@ -2037,6 +2450,10 @@ $('midi').onclick = () => {
   if (scoreView()) {
     const sc = tk.score, T = transpose();
     const tracks = [{ name: 'Melody', channel: 0, notes: sc.notes.map(n => ({ ...n, midi: n.midi + T, offset: 0, bend: null, vel: 90 })) }];
+    let ch = 1;
+    // each layer as its own track, on the same grid
+    for (const L of tk.layers || []) if (!L.muted && L.notes && L.notes.length && ch < 9)
+      tracks.push({ name: L.name, channel: ch++, notes: L.notes.map(n => ({ ...n, midi: n.midi + T, offset: 0, bend: null, vel: Math.round(80 * Math.min(1.4, L.gain)) })) });
     const span = sc.tempo && backingSpan();
     if (span) {
       // every backing part as its own track, timed on the score's beat grid; drums on the GM drum channel
@@ -2050,7 +2467,6 @@ $('midi').onclick = () => {
         parts.get(part).push({ start: e.t, end: e.t + (e.dur || 0.1), qs, qe, midi: drum ? DRUMS[e.kind] : Math.round(e.midi + (e.offset || 0)),
           offset: 0, bend: null, vel: Math.round(Math.max(20, Math.min(120, 100 * (e.vel ?? (e.soft ? 0.55 : 0.8))))) });
       }
-      let ch = 1;
       for (const [name, notes] of parts) {
         notes.sort((x, y) => x.qs - y.qs);
         const channel = name === 'Drums' ? 9 : (ch === 9 ? ++ch : ch);
@@ -2072,7 +2488,22 @@ $('midi').onclick = () => {
   }
   download(new Blob([buildMidi(tracks, { grid: gridOn(), tempo: tk.tempo, res: res(), base: tk.start })], { type: 'audio/midi' }), `hum-${stamp()}.mid`);
 };
-$('wav').onclick = () => download(encodeWav(renderedVoice(), S.take.voice.sr), `hum-${stamp()}.wav`);
+// The recording as a WAV; with layers, a mix of the take and every unmuted layer, each at an even level.
+$('wav').onclick = () => {
+  const tk = S.take, sr = tk.voice.sr, layers = (tk.layers || []).filter(L => !L.muted && L.voice);
+  if (!layers.length) { download(encodeWav(renderedVoice(), sr), `hum-${stamp()}.wav`); return; }
+  const even = d => { let pk = 0; for (const v of d) pk = Math.max(pk, Math.abs(v)); return pk > 1e-6 ? Math.min(0.7 / pk, 60) : 1; };
+  const parts = [{ d: renderedVoice(), t0: tk.voice.t0, g: 1 }, ...layers.map(L => ({ d: L.voice.sr === sr ? L.voice.data : resample(L.voice.data, L.voice.sr, sr), t0: L.voice.t0, g: L.gain }))];
+  const t0 = Math.min(...parts.map(x => x.t0)), t1 = Math.max(...parts.map(x => x.t0 + x.d.length / sr));
+  const out = new Float32Array(Math.ceil((t1 - t0) * sr) + 1);
+  for (const x of parts) {
+    const o = Math.round((x.t0 - t0) * sr), g = even(x.d) * x.g;
+    for (let i = 0; i < x.d.length && o + i < out.length; i++) out[o + i] += x.d[i] * g;
+  }
+  let pk = 0; for (const v of out) pk = Math.max(pk, Math.abs(v));
+  if (pk > 0.95) for (let i = 0; i < out.length; i++) out[i] *= 0.95 / pk;
+  download(encodeWav(out, sr), `hum-mix-${stamp()}.wav`);
+};
 
 // ---------- takes on disk (takes/ next to the page, via serve.py) ----------
 async function saveToDisk(tk) {
@@ -2124,7 +2555,8 @@ function idb() {
 async function saveTake() {
   try {
     const db = await idb(), tk = S.take;
-    const v = tk && tk.points ? { start: tk.start, end: tk.end, points: tk.points, voice: tk.voice, grid: tk.grid, tempoScale: tk.tempoScale, edited: tk.edited || null, taps: tk.taps || null, chordEdits: tk.chordEdits || null, sections: tk.sections || null, chordPicks: tk.chordPicks || null } : null;
+    const v = tk && tk.points ? { start: tk.start, end: tk.end, points: tk.points, voice: tk.voice, grid: tk.grid, tempoScale: tk.tempoScale, edited: tk.edited || null, taps: tk.taps || null, chordEdits: tk.chordEdits || null, sections: tk.sections || null, chordPicks: tk.chordPicks || null,
+      layers: (tk.layers || []).map(L => ({ id: L.id, name: L.name, colour: L.colour, points: L.points, voice: L.voice, start: L.start, end: L.end, gain: L.gain, muted: L.muted, sound: L.sound })) } : null;
     await new Promise((ok, no) => { const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, 'take'); tx.oncomplete = ok; tx.onerror = () => no(tx.error); });
   } catch {}
 }
@@ -2190,7 +2622,7 @@ function showReadout(p) {
   lastShown = performance.now();
   const n = Math.round(p.m), cents = (p.m - n) * 100;
   $('big').innerHTML = NAMES[pcOf(n)] + '<sub>' + (Math.floor(n / 12) - 1) + '</sub>';
-  $('big').style.color = degreesOn() ? degColour(n) : '';
+  $('big').style.setProperty('--degc', degreesOn() ? degColour(n) : 'transparent');
   $('hz').textContent = p.f.toFixed(1) + ' Hz · ' + (cents >= 0 ? '+' : '') + cents.toFixed(0) + '¢';
   needle.style.left = (50 + Math.max(-50, Math.min(50, cents))) + '%';
   needle.classList.toggle('good', Math.abs(cents) < 10);
@@ -2332,64 +2764,6 @@ function edDuplicate() {
   edCopy();
   edPaste(Math.max(...sel.map(n => n.qe)));
 }
-// ---------- record from the marker ----------
-// One bar of lead-in (score, backing and a click) up to the marker, then you sing on while the
-// backing keeps playing. The new take is transcribed on the same beat grid and key, and its notes
-// replace the score from the marker to where you stopped singing.
-$('edPunch').onclick = async () => {
-  if (S.recording) { $('record').click(); return; }
-  if (!editable()) return;
-  if (S.cursor == null) { $('status').textContent = 'Click the roll where the new part should start, then Record from marker'; return; }
-  try { if (!S.listening) await startMic(); } catch (err) { $('status').textContent = 'Mic unavailable: ' + err.message; return; }
-  const ctx = S.ctx, A = S.take, sc = A.score, plan = backingPlan(), b = spb(), beats = plan ? plan.meter.beats : 4;
-  const marker = S.cursor, from = marker - beats * b, at = ctx.currentTime + 0.2, tmap = t => at + (t - from);
-  const bus = ctx.createGain(); bus.connect(ctx.destination);
-  S.punchBus = bus;
-  for (let k = 0; k < beats; k++) click(tmap(from + k * b), k === 0);
-  const span = backingSpan();
-  if (span) {
-    scheduleBacking(ctx, bus, tmap, Math.max(from, span.from - beats * b), marker);
-    const mel = S.acc.melody;
-    S.acc.melody = false;
-    scheduleBacking(ctx, bus, tmap, marker, span.to + 8 * beats * b);
-    S.acc.melody = mel;
-  }
-  // the new take's beat 0 is the same moment as the score's beat 0
-  S.punchArm = { grid: { bpm: sc.tempo.bpm, t0: tmap(sc.tempo.t0), beats } };
-  S.punchMarker = marker;
-  toggleRecord();
-  $('edPunch').textContent = '■ Stop';
-  $('status').textContent = 'Lead-in… sing from the marker';
-};
-function finishPunch(B) {
-  const A = S.prevTake;
-  S.prevTake = null; S.take = A;
-  $('edPunch').textContent = '● Record from marker';
-  const sc = A.score, marker = S.punchMarker;
-  const scB = buildScore(B.points, {
-    tuning: $('tuningSel').value, key: `${sc.key.root}:${sc.key.mode}`, end: B.end, res: sc.res, grid: B.grid, tempoScale: 1, detail: +$('sdetail').value,
-  });
-  const mStep = edStep(marker), res = sc.res || 2;
-  const fresh = scB.notes.filter(n => n.qs >= mStep - Math.round(res / 2));
-  if (!fresh.length) { $('status').textContent = 'Nothing sung after the marker — try again'; renderNotes(); updateButtons(); return; }
-  if (B.voice) {
-    const frames = analyseSpectrum(B.voice, B.points);
-    for (const n of fresh) n.env = voiceEnvelope(frames, n.start, n.end);
-  }
-  const q0 = Math.max(mStep, Math.min(...fresh.map(n => n.qs))), q1 = Math.max(...fresh.map(n => n.qe));
-  beginEdit();
-  const kept = sc.notes.filter(n => n.qe <= q0 || n.qs >= q1);
-  const replaced = sc.notes.length - kept.length;
-  for (const n of fresh) { n.added = true; if (n.qs < q0) n.qs = q0; delete n.src; }
-  sc.notes = [...kept, ...fresh];
-  ED.sel = new Set(fresh);
-  S.view.mode = 'take';
-  commitEdit();
-  A.punches = (A.punches || []).concat([{ voice: B.voice, gridT0: B.grid.t0, at: marker }]);
-  updateButtons();
-  $('status').textContent = `Recorded from the marker: ${fresh.length} new notes${replaced ? `, replacing ${replaced}` : ''} · Ctrl+Z to undo`;
-}
-
 // ---------- polish melody ----------
 // For each note, nearby candidates (up to two semitones away) are scored on: how far they are from
 // what you actually sang (sung centre, in semitones), being in the key, being a chord tone when the
@@ -2502,7 +2876,6 @@ function renderEditBar() {
   if (!on) return;
   $('edUndo').disabled = !ED.undo.length; $('edRedo').disabled = !ED.redo.length;
   for (const id of ['edDel', 'edSplit', 'edDup']) $(id).disabled = !ED.sel.size;
-  $('edPunch').disabled = S.cursor == null && !S.recording;
   $('tapClear').hidden = !S.take.taps;
   $('tapBtn').disabled = !S.take.voice;
   $('edJoin').disabled = ED.sel.size < 2;
@@ -2597,16 +2970,58 @@ function editKeys(e) {
   return true;
 }
 
-const takeView = () => S.view.mode === 'take' && S.take && S.take.points && !S.recording;
+const takeView = () => S.view.mode === 'take' && S.take && S.take.points && (!S.recording || armed());
+// The whole take (and its layers), in take time.
+function fullRange(now) {
+  const tk = S.take;
+  let a = tk.start, b = tk.end;
+  if (gridOn()) for (const n of tk.notes) b = Math.max(b, noteEnd(n));
+  if (scoreView()) for (const n of tk.score.notes) b = Math.max(b, sEnd(n));
+  for (const L of tk.layers || []) { a = Math.min(a, L.start); b = Math.max(b, L.end); }
+  if (armed() && now != null) { a = Math.min(a, S.recArm.from); b = Math.max(b, armHead(now) + 3); }
+  return [a - 0.2, Math.max(b, a + 1) + 0.2];
+}
+// Zoomed in, the view is a window S.view.zoom seconds wide from S.view.left, turning the page
+// when the playhead (or the recording) runs off its right edge.
 function viewRange(now) {
   if (takeView()) {
-    let b = S.take.end;
-    if (gridOn()) for (const n of S.take.notes) b = Math.max(b, noteEnd(n));
-    if (scoreView()) for (const n of S.take.score.notes) b = Math.max(b, sEnd(n));
-    return [S.take.start - 0.2, Math.max(b, S.take.start + 1) + 0.2];
+    const [a, b] = fullRange(now), z = S.view.zoom;
+    if (!z || z >= b - a) { S.view.left = a; return [a, b]; }
+    const head = headAt(now);
+    if (head != null && !ED.drag && (head > S.view.left + z * 0.92 || head < S.view.left)) S.view.left = head - z * 0.08;
+    S.view.left = Math.max(a, Math.min(b - z, S.view.left ?? a));
+    return [S.view.left, S.view.left + z];
   }
   return [now - 8, now + 0.3];
 }
+// Where playback (or a recording over the take) is, in take time; null when nothing is running.
+function headAt(now) {
+  if (armed()) return armHead(now);
+  const P = S.play;
+  if (!P || P.groove || !S.take) return null;
+  if (P.region) { const el = now - P.t0, L = P.region.len; return P.region.from + (P.loop ? ((el % L) + L) % L : el); }
+  return S.take.start + (now - P.t0);
+}
+function zoomBy(f, atX) {
+  if (!takeView()) return;
+  const now = S.ctx ? S.ctx.currentTime : 0, [a, b] = fullRange(now), full = b - a;
+  const cur = S.view.zoom && S.view.zoom < full ? S.view.zoom : full, next = Math.max(1.5, Math.min(full, cur / f));
+  const v = S.lastView, left = S.view.left ?? a;
+  const anchor = atX != null && v ? v.t0 + (atX - v.gut) / (v.W - v.gut) * (v.t1 - v.t0) : left + cur / 2;
+  S.view.left = anchor - (anchor - left) / cur * next;
+  S.view.zoom = next >= full - 1e-3 ? null : next;
+}
+$('zoomIn').onclick = () => zoomBy(1.6);
+$('zoomOut').onclick = () => zoomBy(1 / 1.6);
+$('zoomFit').onclick = () => { S.view.zoom = null; };
+cv.addEventListener('wheel', e => {
+  if (S.layer === 'groove' || !takeView()) return;
+  if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomBy(Math.exp(-e.deltaY * 0.004), e.clientX - cv.getBoundingClientRect().left); return; }
+  if (!S.view.zoom || !S.lastView) return;
+  e.preventDefault();
+  const v = S.lastView, d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  S.view.left += d / (v.W - v.gut) * (v.t1 - v.t0);
+}, { passive: false });
 
 function follow(pts, notes, t0, t1) {
   if (typeof ED !== 'undefined' && ED.drag) return;   // hold the view still while editing
@@ -2627,6 +3042,7 @@ function follow(pts, notes, t0, t1) {
 
 function draw() {
   if (S.layer === 'groove') {
+    $('emptyMsg').hidden = true;
     drawGroove();
     showReadout(S.lastPitch);
     requestAnimationFrame(draw);
@@ -2641,8 +3057,9 @@ function draw() {
   const notes = S.take ? S.take.notes : [];
   const plan = sv ? backingPlan() : null, span = plan && backingSpan();
   const bev = span ? allEvents(span.from, span.to) : [];
+  const layerNotes = tv ? (S.take.layers || []).flatMap(L => (L.notes || []).map(n => ({ midi: n.midi + (sv ? transpose() : 0), end: sv ? sEnd(n) : n.end }))) : [];
   follow(pts, sv ? [...S.take.score.notes.map(n => ({ midi: n.midi + transpose(), end: sEnd(n) })),
-    ...bev.filter(e => e.midi != null && e.kind !== 'melody').map(e => ({ midi: e.midi, end: e.t + e.dur }))] : notes, t0, t1);
+    ...bev.filter(e => e.midi != null && e.kind !== 'melody').map(e => ({ midi: e.midi, end: e.t + e.dur })), ...layerNotes] : [...notes, ...layerNotes], t0, t1);
   const lo = S.view.center - S.view.span / 2, hi = S.view.center + S.view.span / 2;
   const drumH = sv && bev.some(e => e.kind === 'kick' || e.kind === 'hat') ? 30 : 0;
   const gut = 44, waveH = tv && S.take.voice ? 28 : 0, PH = H - waveH - drumH;
@@ -2654,7 +3071,7 @@ function draw() {
 
   g2.clearRect(0, 0, W, H);
   const root = sv && scoreKey() ? scoreKey().root : rootPc(), fifth = (root + 7) % 12;
-  g2.font = '11px "DM Sans", sans-serif'; g2.textBaseline = 'middle';
+  g2.font = '11px "Space Grotesk", sans-serif'; g2.textBaseline = 'middle';
   for (let m = Math.floor(lo) - 1; m <= Math.ceil(hi) + 1; m++) {
     const pc = pcOf(m), y = Y(m + 0.5);
     const fill = pc === root ? colors['lane-root'] : pc === fifth ? colors['lane-fifth'] : [1, 3, 6, 8, 10].includes(pc) ? colors['lane-black'] : null;
@@ -2721,9 +3138,9 @@ function draw() {
     if (drumH) {
       const lanes = { hat: 0, snare: 1, kick: 2 }, lh = drumH / 3;
       g2.fillStyle = colors.grid; g2.fillRect(gut, PH, W - gut, 1);
-      g2.font = '9px "DM Sans", sans-serif'; g2.fillStyle = colors.muted;
+      g2.font = '9px "Space Grotesk", sans-serif'; g2.fillStyle = colors.muted;
       g2.fillText('shk', 8, PH + lh * 0.5); g2.fillText('snr', 8, PH + lh * 1.5); g2.fillText('kick', 8, PH + lh * 2.5);
-      g2.font = '11px "DM Sans", sans-serif';
+      g2.font = '11px "Space Grotesk", sans-serif';
       for (const e of bev) {
         if (!(e.kind in lanes) || e.t < t0 || e.t > t1) continue;
         g2.fillStyle = e.kind === 'kick' ? colors['bk-low-edge'] : e.kind === 'snare' ? colors['note-edge'] : colors['bk-edge'];
@@ -2745,8 +3162,8 @@ function draw() {
       const x = X(beatTime(sec.from));
       if (x < gut - 1 || x > W) continue;
       g2.fillStyle = colors.text; g2.globalAlpha = 0.55; g2.fillRect(x - 1, 0, 2, PH); g2.globalAlpha = 1;
-      g2.font = '600 12px "DM Sans", sans-serif'; g2.fillText(sec.name + (sec.mood && MOODS[sec.mood] ? ' · ' + sec.mood : ''), x + 5, 24);
-      g2.font = '11px "DM Sans", sans-serif';
+      g2.font = '600 12px "Space Grotesk", sans-serif'; g2.fillText(sec.name + (sec.mood && MOODS[sec.mood] ? ' · ' + sec.mood : ''), x + 5, 24);
+      g2.font = '11px "Space Grotesk", sans-serif';
     }
     // the clean score: one block per note on the beat grid
     for (const n of S.take.score.notes) {
@@ -2769,12 +3186,26 @@ function draw() {
         g2.strokeStyle = colors.muted; g2.lineWidth = 1.2; g2.beginPath();
         g2.moveTo(xa, ya); g2.quadraticCurveTo((xa + xb) / 2, Math.min(ya, yb) - lift, xb, yb); g2.stroke();
       }
-      if (x1 - x0 > 22 && rowH > 10) { g2.fillStyle = degreesOn() ? '#FAF9F5' : n.chromatic ? colors.accent : colors.text; g2.fillText(spell(m, key), x0 + 5, Y(m)); }
+      if (x1 - x0 > 22 && rowH > 10) { g2.fillStyle = degreesOn() ? colors['on-deg'] : n.chromatic ? colors.accent : colors.text; g2.fillText(spell(m, key), x0 + 5, Y(m)); }
+    }
+    // layers: outlined in their own colour, over the melody so a part sung in unison still shows
+    for (const L of S.take.layers || []) {
+      const c = colors['layer' + L.colour];
+      g2.globalAlpha = L.muted ? 0.3 : 1;
+      for (const n of L.notes || []) {
+        const s = sStart(n), e = sEnd(n);
+        if (e < t0 || s > t1) continue;
+        const m = n.midi + T, x0 = X(s), x1 = Math.max(X(e) - 2, x0 + 3), y = Y(m + 0.5);
+        g2.fillStyle = c; g2.globalAlpha = L.muted ? 0.06 : 0.16;
+        g2.beginPath(); g2.roundRect(x0 - 1.5, y - 0.5, x1 - x0 + 3, rowH + 1, Math.min(6, rowH / 3)); g2.fill();
+        g2.globalAlpha = L.muted ? 0.3 : 1; g2.strokeStyle = c; g2.lineWidth = 2; g2.setLineDash([5, 3]); g2.stroke(); g2.setLineDash([]);
+      }
+      g2.globalAlpha = 1;
     }
   } else {
   // notes
   const list = notes.slice();
-  const live = S.recording && S.seg && S.seg.live();
+  const live = S.recording && !armed() && S.seg && S.seg.live();
   if (live) list.push({ ...live, live: true });
   for (const n of list) {
     const s = n.live ? n.start : noteStart(n), e = n.live ? n.end : noteEnd(n);
@@ -2863,6 +3294,18 @@ function draw() {
     g2.stroke();
   }
 
+  // layers: their own sung pitch lines, in their colours
+  if (tv) for (const L of S.take.layers || []) {
+    g2.strokeStyle = colors['layer' + L.colour]; g2.lineWidth = 2; g2.lineJoin = 'round'; g2.globalAlpha = L.muted ? 0.3 : 0.9;
+    let lp = null;
+    g2.beginPath();
+    for (const p of L.points) {
+      if (p.t < t0 - 0.1 || p.t > t1 + 0.1 || isNaN(p.m)) { lp = null; continue; }
+      if (lp && Math.abs(p.m - lp.m) <= 3) g2.lineTo(X(p.t), Y(p.m)); else g2.moveTo(X(p.t), Y(p.m));
+      lp = p;
+    }
+    g2.stroke(); g2.globalAlpha = 1;
+  }
   // sung pitch trace (thin and faint when the grid or auto-tune line takes over)
   const faint = (tv && (gridOn() || tc)) || liveTune;
   g2.strokeStyle = colors.trace; g2.lineWidth = faint ? 1.25 : 2; g2.lineJoin = 'round';
@@ -2911,24 +3354,46 @@ function draw() {
     g2.moveTo(X(S.cursor) - 6, 0); g2.lineTo(X(S.cursor) + 6, 0); g2.lineTo(X(S.cursor), 9); g2.fill();
   }
 
+  // recording over the take: the lead-in shaded, the new singing drawn live in the record colour
+  if (armed() && tv && S.recTake) {
+    const A = S.recArm, xa = Math.max(gut, X(A.from)), xm = X(A.marker);
+    g2.fillStyle = colors.rec; g2.globalAlpha = 0.07; g2.fillRect(xa, 0, Math.max(0, xm - xa), PH); g2.globalAlpha = 1;
+    g2.fillRect(xm - 1, 0, 2, PH);
+    g2.font = '600 11px "JetBrains Mono", monospace'; const tag = A.kind === 'layer' ? 'REC LAYER' : A.kind === 'next' ? 'REC NEXT PART' : 'REC REDO', tw = g2.measureText(tag).width;
+    g2.fillText(tag, xm + 6 + tw < W - 4 ? xm + 6 : xm - 6 - tw, PH - 10);
+    g2.font = '11px "Space Grotesk", sans-serif';
+    g2.strokeStyle = colors.rec; g2.lineWidth = 2.5; g2.lineJoin = 'round'; g2.beginPath();
+    let lp = null;
+    for (let i = S.points.length - 1; i >= 0 && S.points[i].t >= S.recTake.start; i--) {
+      const p = S.points[i], t = p.t + A.shift;
+      if (t < A.marker - 0.15 || isNaN(p.m)) { lp = null; continue; }
+      if (lp && Math.abs(p.m - lp.m) <= 3) g2.lineTo(X(t), Y(p.m)); else g2.moveTo(X(t), Y(p.m));
+      lp = p;
+    }
+    g2.stroke();
+  }
+
   // cursor / playhead
-  let head = null;
-  if (S.play && S.play.region) {
-    const el = now - S.play.t0, L = S.play.region.len;
-    head = S.play.region.from + (S.play.loop ? ((el % L) + L) % L : el);
-  } else if (S.play && S.play.loop) head = S.play.loop.from + (((now - S.play.t0) % S.play.loop.len) + S.play.loop.len) % S.play.loop.len;
-  else if (S.play) head = S.take.start + (now - S.play.t0);
-  // the chord under the playhead while jamming, for the readout
+  let head = headAt(now);
+  // the chord under the playhead while looping, for the readout
   S.curChord = null;
-  if (S.play && S.play.loop && plan) {
+  if (S.play && S.play.loop && plan && head != null) {
     const sg = plan.segs.find(x => head >= beatTime(x.start) && head < beatTime(x.end));
     if (sg) S.curChord = chordFor(plan, sg);
   }
-  else if (!tv && S.listening) head = now;
+  if (head == null && !tv && S.listening) head = now;
   if (head != null && head >= t0 && head <= t1) {
-    g2.fillStyle = colors.accent; g2.fillRect(X(head) - 1, 0, 2, H);
+    g2.fillStyle = armed() ? colors.rec : colors.accent; g2.fillRect(X(head) - 1, 0, 2, H);
     if (S.lastPitch && !S.play && S.listening) { g2.beginPath(); g2.arc(X(head), Y(S.lastPitch.m), 5, 0, Math.PI * 2); g2.fill(); }
   }
+  // zoomed in: where the window sits in the whole take
+  if (tv && S.view.zoom) {
+    const [fa, fb] = fullRange(now), k = (W - gut) / (fb - fa);
+    g2.fillStyle = colors.grid; g2.fillRect(gut, H - 4, W - gut, 4);
+    g2.fillStyle = colors.muted; g2.fillRect(gut + (t0 - fa) * k, H - 4, Math.max(6, (t1 - t0) * k), 4);
+  }
+  const em = $('emptyMsg'), empty = !S.take && !S.recording && !S.listening;
+  if (em.hidden === empty) em.hidden = !empty;
 
   showReadout(S.lastPitch);
   drawSpectrum(head);
@@ -2946,7 +3411,7 @@ function drawSpectrum(head) {
   const fLo = 50, fHi = 6000, PH = H - 14;
   const X = f => Math.log(f / fLo) / Math.log(fHi / fLo) * W;
   const Yd = db => PH - Math.max(0, Math.min(1, (db + 100) / 75)) * PH;
-  sg.font = '10px "DM Sans", sans-serif'; sg.textBaseline = 'top'; sg.fillStyle = colors.muted;
+  sg.font = '10px "Space Grotesk", sans-serif'; sg.textBaseline = 'top'; sg.fillStyle = colors.muted;
   for (const [f, s] of [[100, '100'], [1000, '1k'], [4000, '4k']]) { sg.fillRect(X(f), PH, 1, 3); sg.fillText(s, X(f) - 6, PH + 3); }
 
   let f0 = null, levels = null;
@@ -2999,14 +3464,36 @@ loadTake();
 listDevices();
 requestAnimationFrame(draw);
 
+// ---------- inspector tabs ----------
+function showTab(name) {
+  if (!document.querySelector(`.pane[data-pane="${name}"]`)) name = 'backing';
+  for (const b of $('tabs').children) b.setAttribute('aria-selected', String(b.dataset.tab === name));
+  for (const p of document.querySelectorAll('.pane')) p.hidden = p.dataset.pane !== name;
+  try { localStorage.setItem('hum-tab', name); } catch {}
+}
+$('tabs').onclick = e => { const t = e.target.closest('[data-tab]'); if (t) showTab(t.dataset.tab); };
+showTab((() => { try { return localStorage.getItem('hum-tab'); } catch { return null; } })() || 'backing');
+$('keysBtn').onclick = () => $('keysDlg').showModal();
+// a mouse click leaves no focus behind, so Space keeps meaning Record (keyboard focus still works as usual)
+addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b && e.detail > 0 && !b.closest('dialog')) b.blur(); }, true);
+
 addEventListener('keydown', e => {
-  if (['SELECT', 'INPUT'].includes(e.target.tagName)) return;
+  if (['SELECT', 'INPUT', 'TEXTAREA'].includes(e.target.tagName) || $('keysDlg').open) return;
   if (TAP.on && (e.code === 'Space' || e.key === 't' || e.key === 'T')) { e.preventDefault(); if (!e.repeat) tap(); return; }
+  if (e.target.tagName === 'BUTTON' && (e.code === 'Space' || e.key === 'Enter')) return;   // the focused button handles it
   if (editKeys(e)) return;
-  if (e.ctrlKey || e.metaKey) return;
-  if (e.code === 'Space') { e.preventDefault(); $('record').click(); }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const modes = { 1: 'new', 2: 'next', 3: 'layer', 4: 'punch' };
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) $('record').click(); }
+  else if (e.key === 'p' || e.key === 'Enter') { if (!$('playMain').disabled) { e.preventDefault(); $('playMain').click(); } }
+  else if (e.key === 'l') $('loopBtn').click();
+  else if (modes[e.key] && !S.recording) { const b = $('recMode').querySelector(`[data-v="${modes[e.key]}"]`); if (!b.disabled) b.click(); }
+  else if (e.key === '+' || e.key === '=') zoomBy(1.6);
+  else if (e.key === '-' || e.key === '_') zoomBy(1 / 1.6);
+  else if (e.key === '0') S.view.zoom = null;
+  else if (e.key === '?') $('keysDlg').showModal();
   else if (e.key === 'd') setDrone(!S.droneOn);
   else if (e.key === 'm') setMetro(!metro.on);
   else if (e.key === 'h') setMonitor(!S.monitorOn);
-  else if (e.key === 'p' && !$('play').disabled) $('play').click();
 });
+updateButtons(); renderParts();
