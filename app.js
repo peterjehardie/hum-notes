@@ -11,14 +11,14 @@ const S = {
   view: { center: 60, span: 26, mode: 'live' },
   playMode: 'voice', voicing: 'root', snap: 'chrom', rhythm: 'free', timbre: 'voice', partials: 'on', layer: 'score', lineEngine: 'natural', recKind: 'hum', grooveHum: false, colours: 'degree', hear: 'score', loop: false, chordStyle: 'pad', chordRate: '1',
   harmony: 'plain', sound: 'synth', spacing: 'close', register: 'mid', feel: 'backbeat', motifUse: 'ostinato', writing: 'arranged', energy: 'arc', formAware: 'on',
-  drumFollow: 'on', bassStyle: 'feel', swing: 'auto', intro: '0', ending: 'ring',
-  acc: { melody: true, harmonics: false, drone: true, chords: true, bass: true, rhythm: true, motif: false, counter: true },
-  mix: { melody: 1, chords: 1, bass: 1, counter: 1, motif: 1, drone: 1, drums: 1 }, inst: { bass: 'auto', counter: 'auto', motif: 'auto' },
+  drumFollow: 'on', bassStyle: 'feel', swing: 'auto', intro: '0', ending: 'ring', space: 'room', repeats: '1',
+  acc: { melody: true, harmonics: false, drone: true, chords: true, bass: true, rhythm: true, motif: false, counter: true, choir: false },
+  mix: { melody: 1, chords: 1, bass: 1, counter: 1, motif: 1, choir: 1, drone: 1, drums: 1 }, inst: { bass: 'auto', counter: 'auto', motif: 'auto' },
 };
 
 // ---------- settings (survive reloads) ----------
-const FIELDS = ['pulseSel', 'pulseBpm', 'busy', 'micSel', 'outSel', 'root', 'oct', 'wave', 'dvol', 'bpm', 'beats', 'mvol', 'detail', 'res', 'tune', 'speed', 'gate', 'flourish', 'prange', 'style', 'keySel', 'tuningSel', 'transpose', 'sres', 'meterSel', 'bvol', 'moodSel', 'melSound', 'lineSmooth', 'lineTune', 'lineVib', 'lineEven', 'lineGlide', 'sdetail', 'voiceSound', 'polishAmt'];
-const SEGS = ['drumFollow', 'bassStyle', 'swing', 'intro', 'ending', 'lineEngine', 'recKind', 'colours', 'hear', 'playMode', 'voicing', 'snap', 'rhythm', 'timbre', 'partials', 'layer', 'chordStyle', 'chordRate', 'harmony', 'sound', 'spacing', 'register', 'feel', 'motifUse', 'writing', 'energy', 'formAware'];
+const FIELDS = ['melDouble', 'pulseSel', 'pulseBpm', 'busy', 'micSel', 'outSel', 'root', 'oct', 'wave', 'dvol', 'bpm', 'beats', 'mvol', 'detail', 'res', 'tune', 'speed', 'gate', 'flourish', 'prange', 'style', 'keySel', 'tuningSel', 'transpose', 'sres', 'meterSel', 'bvol', 'moodSel', 'melSound', 'lineSmooth', 'lineTune', 'lineVib', 'lineEven', 'lineGlide', 'sdetail', 'voiceSound', 'polishAmt'];
+const SEGS = ['space', 'repeats', 'drumFollow', 'bassStyle', 'swing', 'intro', 'ending', 'lineEngine', 'recKind', 'colours', 'hear', 'playMode', 'voicing', 'snap', 'rhythm', 'timbre', 'partials', 'layer', 'chordStyle', 'chordRate', 'harmony', 'sound', 'spacing', 'register', 'feel', 'motifUse', 'writing', 'energy', 'formAware'];
 for (const mode of ['major', 'minor']) for (let r = 0; r < 12; r++)
   $('keySel').add(new Option(keyName({ root: r, mode }), r + ':' + mode));
 function showValues() {
@@ -454,7 +454,7 @@ $('undoRec').onclick = undoTake;
 const beatAt = t => { const sc = S.take.score; return sc.beatMap ? beatOf(sc.beatMap, t) : (t - sc.tempo.t0) / (60 / sc.tempo.bpm); };
 async function prepareSounds() {
   const inst = v => !['voice', 'plain', 'profile'].includes(v);
-  if (S.hear !== 'voice' && Object.values(S.inst).some(sampleSound)) { await ensureOrchestra(); return; }
+  if (S.hear !== 'voice' && (Object.values(S.inst).some(sampleSound) || (melDouble() && sampleSound(melDouble().sound)))) { await ensureOrchestra(); return; }
   const tk = S.take;
   const secOrch = (tk && tk.sections || []).some(s => MOODS[s.mood] && MOODS[s.mood].sound === 'orchestra');
   const layerInst = (tk && tk.layers || []).some(L => !L.muted && inst(L.sound));
@@ -1116,7 +1116,7 @@ function genreHint() {
 
 // ---------- score layer: clean notes for composing ----------
 const scoreView = () => S.layer === 'score' && S.take && S.take.score && (!S.recording || armed());
-const transpose = () => Math.round(+$('transpose').value || 0);
+const transpose = () => Math.round(+$('transpose').value || 0) + (S.lift || 0);
 const scoreKey = () => { const k = S.take && S.take.score && S.take.score.key; return k && { ...k, root: pcOf(k.root + transpose()) }; };
 const stepTimeOf = step => { const sc = S.take.score; return sc.beatMap ? beatTimeOf(sc.beatMap, step / sc.res) : sc.tempo.t0 + step * sc.unit; };
 const sStart = n => { const sc = S.take.score; return sc.tempo ? stepTimeOf(n.qs) : n.start; };
@@ -1390,6 +1390,34 @@ function env(ctx, g, at, peak, a, hold, rel) {
   g.gain.setValueAtTime(peak, at + a + hold);
   g.gain.linearRampToValueAtTime(0, at + a + hold + rel);
 }
+// A choir voice: three slightly detuned voices in the colour of your own voice (the take's measured
+// vowel), each with its own slow vibrato and a breath of noise, swelling in and fading out.
+function choirNote(ctx, out, midi, at, dur, level) {
+  const env = S.take && S.take.env, g = ctx.createGain(), lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = env ? 4200 : 1900;
+  const att = Math.min(0.6, dur * 0.4), rel = 0.7, end = at + dur + rel;
+  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(level, at + att);
+  g.gain.setValueAtTime(level, at + Math.max(att, dur - 0.05)); g.gain.linearRampToValueAtTime(0, end);
+  for (const det of [-9, 0, 8]) {
+    const o = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    if (env) o.setPeriodicWave(waveFor(ctx, voiceHarm(env, midi))); else o.type = 'sawtooth';
+    o.frequency.value = midiToHz(midi); o.detune.value = det;
+    lfo.frequency.value = 4.5 + Math.random() * 0.9; lg.gain.value = 7;
+    lfo.connect(lg).connect(o.detune);
+    o.connect(lp); o.start(at); o.stop(end + 0.05); lfo.start(at); lfo.stop(end + 0.05);
+  }
+  const br = noise(ctx), bp = ctx.createBiquadFilter(), bg = ctx.createGain();
+  br.loop = true; bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.6; bg.gain.value = 0.12;
+  br.connect(bp).connect(bg).connect(lp); br.start(at); br.stop(end);
+  lp.connect(g).connect(out);
+}
+// The melody's double: off, or an instrument a number of semitones away ('cellos:-12').
+function melDouble() {
+  const v = $('melDouble').value;
+  if (!v || v === 'none') return null;
+  const [sound, shift] = v.split(':');
+  return { sound, shift: +shift || 0 };
+}
 // One backing note. Sounds: synth (soft saw pad), strings (slow detuned saws with vibrato),
 // brass (saw with an opening filter), pluck (guitar-like), keys (electric-piano-like), plus
 // drone and bass.
@@ -1434,7 +1462,7 @@ function synthNote(ctx, out, midi, at, dur, kind, level) {
 }
 // Synthesised kit: kick (a falling sine with a beater click), snare (a short drum tone under filtered
 // noise), closed hat (bright noise), crash (long bright noise).
-function drum(ctx, out, kind, at, level) {
+function drum(ctx, out, kind, at, level, dur) {
   const g = ctx.createGain();
   g.connect(out);
   const burst = (len, type, freq, q, lvl, loop) => {
@@ -1458,6 +1486,25 @@ function drum(ctx, out, kind, at, level) {
     burst(0.18, 'bandpass', 3500, 0.45, level);
   } else if (kind === 'hat') {
     burst(0.045, 'highpass', 8000, 0.7, level * 1.2);
+  } else if (kind === 'boom') {
+    // a big low drum: a deep falling tone and the thud of the skin
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(90, at); o.frequency.exponentialRampToValueAtTime(38, at + 0.35);
+    og.gain.setValueAtTime(0.0001, at); og.gain.exponentialRampToValueAtTime(level * 1.3, at + 0.008); og.gain.exponentialRampToValueAtTime(0.001, at + 1.3);
+    o.connect(og).connect(g); o.start(at); o.stop(at + 1.35);
+    burst(0.12, 'lowpass', 700, 0.7, level * 0.6);
+  } else if (kind === 'tom') {
+    const o = ctx.createOscillator(), og = ctx.createGain();
+    o.frequency.setValueAtTime(150, at); o.frequency.exponentialRampToValueAtTime(95, at + 0.25);
+    og.gain.setValueAtTime(level, at); og.gain.exponentialRampToValueAtTime(0.001, at + 0.55);
+    o.connect(og).connect(g); o.start(at); o.stop(at + 0.6);
+    burst(0.06, 'bandpass', 1200, 0.8, level * 0.3);
+  } else if (kind === 'swell') {
+    // a cymbal swelling up into the next phrase
+    const d = Math.max(0.3, dur || 1), n = noise(ctx), f = ctx.createBiquadFilter(), ng = ctx.createGain();
+    n.loop = true; f.type = 'highpass'; f.frequency.setValueAtTime(2000, at); f.frequency.linearRampToValueAtTime(6000, at + d);
+    ng.gain.setValueAtTime(0.0001, at); ng.gain.exponentialRampToValueAtTime(level, at + d); ng.gain.linearRampToValueAtTime(0, at + d + 0.03);
+    n.connect(f).connect(ng).connect(g); n.start(at); n.stop(at + d + 0.05);
   } else if (kind === 'ride') {
     burst(0.45, 'bandpass', 7200, 1.2, level);
     const o = ctx.createOscillator(), og = ctx.createGain();
@@ -1525,6 +1572,7 @@ const FEELS = {
   onedrop: { kick: { 4: [2], 3: [2], 2: [1] }, snare: { 4: [2], 3: [2], 2: [1] }, hat: 'offbeats', bass: { 4: [0, 1.5, 2.5], 3: [0, 1.5], 2: [0, 1] } },
   boombap: { kick: { 4: [0, 1.75, 2.5], 3: [0, 1.75], 2: [0, 1.5] }, snare: { 4: [1, 3], 3: [1, 2], 2: [1] }, hat: 'eighths', bass: { 4: [0, 1.75, 2.5], 3: [0, 1.75], 2: [0, 1.5] } },
   train: { kick: { 4: [0, 2], 3: [0], 2: [0] }, snare: { 4: [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5], 3: [0, 0.5, 1, 1.5, 2, 2.5], 2: [0, 0.5, 1, 1.5] }, accent: [1, 3], hat: null, bass: { 4: [0, 2], 3: [0], 2: [0, 1] } },
+  epic: { kick: { 4: [0, 1.5, 2, 3], 3: [0, 1.5], 2: [0, 1] }, kickKind: 'boom', snare: { 4: [], 3: [], 2: [] }, toms: { 4: [3, 3.5], 3: [2, 2.5], 2: [1.5] }, hat: null, bass: 'hold' },
   four: { kick: { 4: [0, 1, 2, 3], 3: [0, 1, 2], 2: [0, 1] }, snare: { 4: [1, 3], 3: [1], 2: [1] }, hat: 'offbeats', bass: 'eighths' },
   bossa: { kick: { 4: [0, 1.5, 2, 3.5], 3: [0, 1.5], 2: [0, 1.5] }, snare: { 4: [0, 1.5, 3], 3: [1, 2.5], 2: [0.5, 1.5] }, hat: 'eighths', soft: true, bass: { 4: [0, 1.5, 2, 3.5], 3: [0, 1.5], 2: [0, 1.5] } },
   none: { kick: { 4: [], 3: [], 2: [] }, snare: { 4: [], 3: [], 2: [] }, hat: null, bass: 'hold' },
@@ -1534,7 +1582,7 @@ const FEELS = {
 // plan. Registers follow the sung melody: bass under it, inner voices and counter-melody above.
 function arrangement(plan, T) {
   const sc = S.take.score, r = sres();
-  const busy = +$('busy').value;
+  const busy = busyOverride ?? +$('busy').value;
   const sig = [T, S.energy, S.acc.motif, plan.sig, plan.segs.map(sg => sg.pick || 0).join(''), busy].join('|');
   if (plan.arr && plan.arrSig === sig) return plan.arr;
   const melody = sc.notes.map(n => ({ midi: n.midi + T, start: n.qs / r, end: n.qe / r }));
@@ -1580,9 +1628,12 @@ function backingEvents(from, to) {
       if (inSpan(s)) ev.push({ kind: 'harm', k: tr.k, midi: n.midi + T, offset: n.offset, level: n.level, t: s, dur: Math.min(e, to) - s });
     }
   }
+  const dbl = melDouble();
   if (S.acc.melody) for (const n of sc.notes) {
     const s = sStart(n), e = sEnd(n);
-    if (inSpan(s)) ev.push({ kind: 'melody', n, t: s, dur: Math.min(e, to) - s, midi: n.midi + T });
+    if (!inSpan(s)) continue;
+    ev.push({ kind: 'melody', n, t: s, dur: Math.min(e, to) - s, midi: n.midi + T });
+    if (dbl) ev.push({ kind: 'double', t: s, dur: Math.min(e, to) - s, midi: n.midi + T + dbl.shift, vel: 0.6 });
   }
   if (S.acc.motif && plan.motif) {
     // the melody's motif reused as a line in the backing (motif.js works in grid steps)
@@ -1610,6 +1661,8 @@ function backingEvents(from, to) {
     if (!c) continue;
     const v = voice(c, T, prev);
     prev = v;
+    // the choir sings the chord's notes, kept in a singable middle range
+    if (S.acc.choir && inSpan(s)) for (const m of [...new Set(v.map(m => { while (m < 55) m += 12; while (m > 74) m -= 12; return m; }))]) ev.push({ kind: 'choir', midi: m, t: s, dur: e - s });
     const chordNote = (midi, t, dur, extra = {}) => { if (inSpan(t)) ev.push({ kind: 'chord', midi, t, dur, ...extra }); };
     if (S.acc.chords && v.length && !arr) {
       const tex = S.chordStyle;
@@ -1696,7 +1749,12 @@ function backingEvents(from, to) {
     const firstBar = plan.segs.length ? plan.segs[0].start : meter.offset;
     for (let bar = firstBar; beatTime(bar) < to - 1e-6; bar += beats) {
       const en = energyAt(beatTime(bar));
-      for (const k of feel.kick[beats] || []) if (inSpan(beatTime(bar + k))) ev.push({ kind: 'kick', t: beatTime(bar + k), soft: feel.kickSoft || S.feel === 'sparse' || en < 0.45 });
+      for (const k of feel.kick[beats] || []) {
+        // film drums: quiet phrases keep only the big hit on one
+        if (feel.kickKind && en < 0.45 && k !== 0) continue;
+        if (inSpan(beatTime(bar + k))) ev.push({ kind: feel.kickKind || 'kick', t: beatTime(bar + k), soft: feel.kickSoft || S.feel === 'sparse' || en < 0.45 });
+      }
+      if (feel.toms && en >= 0.55) for (const k of feel.toms[beats] || []) if (inSpan(beatTime(bar + k))) ev.push({ kind: 'tom', t: beatTime(bar + k), soft: en < 0.75 });
       if (en >= 0.3) for (const k of feel.snare[beats] || []) if (inSpan(beatTime(bar + k)))
         ev.push({ kind: 'snare', t: beatTime(bar + k), soft: feel.accent ? !feel.accent.includes(k) : feel.soft || k % 1 !== 0 || beats === 3 || S.feel === 'lilt' || en < 0.6 });
       if (en < 0.4) continue;
@@ -1732,12 +1790,13 @@ function backingEvents(from, to) {
 // phrase becomes a fill (when the tune rests there) and a loud phrase opens with a crash; the piece
 // ends on its last note with a kick and a crash. All in beats of the score's own (drifting) beat.
 let tailMode = false;   // set while the backing runs on past the end (recording the next part)
+let midRepeat = false;  // set while a statement of the theme is not the last one (the build)
 function followTune(ev, plan, A, from, to) {
   const sc = S.take.score, r = sc.res || sres(), M = plan.meter.beats;
   const mel = sc.notes.map(n => ({ s: n.qs / r, e: n.qe / r })).sort((a, b) => a.s - b.s);
   if (!mel.length || !plan.segs.length) return ev;
   const first = plan.segs[0].start, lastB = plan.segs[plan.segs.length - 1].end;
-  const DR = ['kick', 'snare', 'hat', 'ride', 'crash'];
+  const DR = DRUM_KINDS, K = (FEELS[S.feel] && FEELS[S.feel].kickKind) || 'kick';
   let drums = ev.filter(e => DR.includes(e.kind));
   const rest = ev.filter(e => !DR.includes(e.kind));
   const inSpan = t => t >= from - 1e-6 && t < to - 1e-6;
@@ -1754,7 +1813,7 @@ function followTune(ev, plan, A, from, to) {
   for (let bar = first; bar < lastB - 1e-6; bar += M) {
     const p = phraseAt(bar);
     // quiet phrase: half-time (one snare, on 3 in 4/4)
-    if (p && p.energy < 0.45 && M === 4) {
+    if (p && p.energy < 0.45 && M === 4 && K !== 'boom') {
       drop(e => e.kind === 'snare' && bOf(e) >= bar - 1e-6 && bOf(e) < bar + M - 1e-6);
       add('snare', bar + 2, { soft: true });
     }
@@ -1765,31 +1824,33 @@ function followTune(ev, plan, A, from, to) {
   for (let i = 0; i + 1 < mel.length; i++) {
     const a = mel[i].e, z = mel[i + 1].s;
     if (z - a < 1 - 1e-6) continue;
-    for (let x = Math.ceil(a * 2 - 1e-6) / 2; x < z - 1e-6; x += 0.5) add('hat', x, { soft: true });
+    if (K === 'boom') { add('tom', z - 1, { soft: true }); continue; }   // film drums: a soft tom leads back in
+    if (FEELS[S.feel] && FEELS[S.feel].hat) for (let x = Math.ceil(a * 2 - 1e-6) / 2; x < z - 1e-6; x += 0.5) add('hat', x, { soft: true });
     add('snare', z - 0.5, { soft: true, vel: 0.3 });
   }
   // accents
   for (const n of mel) {
     const len = n.e - n.s, frac = n.s - Math.floor(n.s);
-    if (len >= 1 - 1e-6 && near(frac, 0.5)) { drop(e => e.kind === 'kick' && near(bOf(e), Math.ceil(n.s))); add('kick', n.s); }
-    else if (len >= 2 - 1e-6 && frac < 1e-3 && !has('kick', n.s)) add('kick', n.s, { soft: true });
+    if (len >= 1 - 1e-6 && near(frac, 0.5)) { drop(e => e.kind === K && near(bOf(e), Math.ceil(n.s))); add(K, n.s); }
+    else if (len >= 2 - 1e-6 && frac < 1e-3 && !has(K, n.s)) add(K, n.s, { soft: true });
   }
   // phrase ends: a fill into the next phrase, a crash on its first downbeat when it is loud
   for (let i = 0; i + 1 < phrases.length; i++) {
     const q = phrases[i + 1], fb = q.start - 1;
     if (fb > first && onsets(fb, q.start) === 0 && !sounding(fb + 0.5)) {
       drop(e => bOf(e) >= fb - 1e-6 && bOf(e) < q.start - 1e-6);
-      for (let k = 0; k < 4; k++) add('snare', fb + k / 4, { vel: 0.35 + 0.15 * k, soft: k < 2 });
-      add('kick', fb, { soft: true });
+      for (let k = 0; k < 4; k++) add(K === 'boom' ? 'tom' : 'snare', fb + k / 4, { vel: 0.35 + 0.15 * k, soft: k < 2 });
+      add(K, fb, { soft: true });
     }
     const down = Math.abs(barOf(q.start) - q.start) < 1e-3 ? q.start : barOf(q.start) + M;
     if (q.energy >= 0.55) add('crash', down);
+    if (K === 'boom' && q.energy >= 0.5) add('swell', down - 1, { dur: beatTime(down) - beatTime(down - 1) });
   }
   // the end: nothing after the last note but a kick and a crash on it
-  if (!tailMode) {
+  if (!tailMode && !midRepeat) {
     const ln = mel[mel.length - 1];
     drop(e => bOf(e) > ln.s + 1e-3);
-    add('kick', ln.s); add('crash', ln.s);
+    add(K, ln.s); add('crash', ln.s);
   }
   return rest.concat(drums);
 }
@@ -1921,9 +1982,10 @@ function allEvents(from, to) {
       if (sec.fill && i < secs.length - 1 && S.acc.rhythm) {
         const fillAt = beatTime(sec.to - 1);
         if (fillAt >= a && fillAt < z) {
-          ev = ev.filter(e => !(['kick', 'snare', 'hat'].includes(e.kind) && e.t >= fillAt - 1e-6));
-          for (let k = 0; k < 4; k++) ev.push({ kind: 'snare', t: fillAt + k * b / 4, vel: 0.35 + 0.2 * k, soft: k < 2 });
-          ev.push({ kind: 'kick', t: fillAt, soft: true });
+          const film = withSection(sec, () => (FEELS[S.feel] && FEELS[S.feel].kickKind) === 'boom');
+          ev = ev.filter(e => !(['kick', 'snare', 'hat', 'boom', 'tom'].includes(e.kind) && e.t >= fillAt - 1e-6));
+          for (let k = 0; k < 4; k++) ev.push({ kind: film ? 'tom' : 'snare', t: fillAt + k * b / 4, vel: 0.35 + 0.2 * k, soft: k < 2 });
+          ev.push({ kind: film ? 'boom' : 'kick', t: fillAt, soft: true });
         }
       }
       ev.forEach(e => { e.sec = i; });
@@ -1983,13 +2045,14 @@ function openSectionMenu(id, anchor) {
 
 // Schedule backing (and the melody) for take time [from, to); tAt maps take time to audio time.
 // ---------- the mix: a level for each part, and an instrument of its own for some ----------
-const MIX_PARTS = [['melody', 'Melody'], ['chords', 'Chords'], ['bass', 'Bass'], ['counter', 'Counter-melody'], ['motif', 'Hook echo'], ['drone', 'Drone'], ['drums', 'Drums']];
+const MIX_PARTS = [['melody', 'Melody'], ['chords', 'Chords'], ['bass', 'Bass'], ['counter', 'Counter-melody'], ['motif', 'Hook echo'], ['choir', 'Choir'], ['drone', 'Drone'], ['drums', 'Drums']];
 const PART_SOUNDS = {
   bass: [['auto', 'Automatic'], ['synth', 'Synth bass'], ['cellosPizz', 'Plucked'], ['contrabass', 'Bowed'], ['piano', 'Piano']],
   counter: [['auto', 'Automatic'], ['flute', 'Flute'], ['clarinet', 'Clarinet'], ['oboe', 'Oboe'], ['violins', 'Violins'], ['horn', 'Horn'], ['piano', 'Piano'], ['keys', 'Synth keys']],
   motif: [['auto', 'Automatic'], ['horn', 'Horn'], ['piano', 'Piano'], ['flute', 'Flute'], ['violins', 'Violins'], ['keys', 'Synth keys']],
 };
-const partOf = k => k === 'melody' || k === 'harm' ? 'melody' : k === 'chord' ? 'chords' : ['kick', 'snare', 'hat', 'ride', 'crash'].includes(k) ? 'drums' : k;
+const DRUM_KINDS = ['kick', 'snare', 'hat', 'ride', 'crash', 'boom', 'tom', 'swell'];
+const partOf = k => k === 'melody' || k === 'harm' || k === 'double' ? 'melody' : k === 'chord' ? 'chords' : DRUM_KINDS.includes(k) ? 'drums' : k;
 const sampleSound = v => v && !['auto', 'synth', 'keys'].includes(v);
 function renderMixer() {
   const box = $('mixer');
@@ -2036,6 +2099,20 @@ function scheduleBacking(ctx, out, tAt, from, to, events) {
     const chordLevel = { synth: 0.035, strings: 0.03, brass: 0.03, pluck: 0.07, keys: 0.06 }[S.sound] || 0.04;
     switch (e.kind) {
       case 'melody': playScoreNote(ctx, e.n, at, out, { s: e.t, e: e.t + e.dur }); break;
+      case 'double': {
+        const d = melDouble();
+        if (d && orchestraReady) playSample(ctx, orchOf('melody'), d.sound, e.midi, at, e.dur, 0.6);
+        else synthNote(ctx, out, e.midi, at, e.dur, 'strings', 0.05 * lvl);
+        break;
+      }
+      case 'choir': choirNote(ctx, out, e.midi, at, e.dur, 0.022 * lvl); break;
+      case 'boom': {
+        drum(ctx, out, 'boom', at, (e.soft ? 0.35 : 0.6) * lvl);
+        if (orchestraReady) playSample(ctx, orchOf('drums'), 'timpani', 41 + pcOf(S.take.score.key.root + transpose() - 41), at, 1.4, e.soft ? 0.5 : 0.85);
+        break;
+      }
+      case 'tom': drum(ctx, out, 'tom', at, (e.soft ? 0.2 : 0.35) * lvl); break;
+      case 'swell': drum(ctx, out, 'swell', at, 0.11 * lvl, e.dur); break;
       case 'drone': synthNote(ctx, out, e.midi, at, e.dur, 'drone', 0.05 * lvl); break;
       case 'chord': synthNote(ctx, out, e.midi, at, e.dur, e.figure ? (S.sound === 'brass' ? 'brass' : 'strings') : S.sound,
         chordLevel * lvl * (e.soft ? 0.55 : 1) * (e.figure ? 2 : 1) * (e.vel != null ? 0.4 + 0.9 * e.vel : 1)); break;
@@ -2063,7 +2140,7 @@ function scheduleBacking(ctx, out, tAt, from, to, events) {
 const MOODS = { ...GENRES };
 for (const [old, now] of Object.entries(GENRE_ALIASES)) MOODS[old] = GENRES[now];
 const SHAPE_SEGS = ['harmony', 'chordRate', 'chordStyle', 'sound', 'spacing', 'register', 'feel', 'writing', 'energy', 'formAware'];
-const MORE_SEGS = ['drumFollow', 'bassStyle', 'swing', 'intro', 'ending'];
+const MORE_SEGS = ['drumFollow', 'bassStyle', 'swing', 'intro', 'ending', 'space', 'repeats'];
 let applyingMood = false;
 function applyMood(name) {
   name = GENRE_ALIASES[name] || name;
@@ -2071,21 +2148,24 @@ function applyMood(name) {
   if (!m) return;
   applyingMood = true;
   for (const k of [...SHAPE_SEGS, 'bassStyle', 'swing', 'intro', 'ending']) if (m[k] != null) setSeg(k, m[k]);
-  S.acc.drone = !!m.drone;
+  setSeg('space', m.space || 'room'); setSeg('repeats', m.repeats || '1');
+  S.acc.drone = !!m.drone; S.acc.choir = !!m.choir;
   if (m.counter != null) S.acc.counter = m.counter;
+  if (m.melody) $('melSound').value = m.melody;
+  $('melDouble').value = m.double ? `${m.double.sound}:${m.double.shift}` : 'none';
   for (const b of document.querySelectorAll('[data-acc]')) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
   S.inst = { bass: 'auto', counter: 'auto', motif: 'auto', ...(m.inst || {}) };
   if (m.busy != null) $('busy').value = m.busy;
   applyingMood = false;
   $('moodSel').value = name;
-  renderMixer(); updateBackingFields(); saveSettings(); renderChords();
-  if (S.sound === 'orchestra' || Object.values(S.inst).some(sampleSound)) ensureOrchestra();
+  renderMixer(); updateBackingFields(); saveSettings(); renderChords(); renderParts();
+  if (S.sound === 'orchestra' || Object.values(S.inst).some(sampleSound) || sampleSound($('melSound').value) || melDouble()) ensureOrchestra();
 }
 $('moodSel').addEventListener('change', () => applyMood($('moodSel').value));
 // A/B: the backing settings as they are become A; change anything (that is B) and switch between them
 const AB_SEGS = () => [...SHAPE_SEGS, ...MORE_SEGS, 'motifUse'];
 function backingSettings() {
-  const o = { segs: {}, acc: { ...S.acc }, busy: $('busy').value, bvol: $('bvol').value, mix: { ...S.mix }, inst: { ...S.inst }, mood: $('moodSel').value, meter: $('meterSel').value };
+  const o = { segs: {}, acc: { ...S.acc }, busy: $('busy').value, bvol: $('bvol').value, mix: { ...S.mix }, inst: { ...S.inst }, mood: $('moodSel').value, meter: $('meterSel').value, mel: $('melSound').value, dbl: $('melDouble').value };
   for (const k of AB_SEGS()) o.segs[k] = S[k];
   return o;
 }
@@ -2095,7 +2175,7 @@ function setBackingSettings(o) {
   applyingMood = false;
   Object.assign(S.acc, o.acc);
   for (const b of document.querySelectorAll('[data-acc]')) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
-  $('busy').value = o.busy; $('bvol').value = o.bvol; $('moodSel').value = o.mood; $('meterSel').value = o.meter;
+  $('busy').value = o.busy; $('bvol').value = o.bvol; $('moodSel').value = o.mood; $('meterSel').value = o.meter; $('melSound').value = o.mel; $('melDouble').value = o.dbl;
   S.mix = { ...o.mix }; S.inst = { ...o.inst };
   renderMixer(); updateBackingFields(); saveSettings(); renderChords(); updateScoreInfo();
   if (S.sound === 'orchestra' || Object.values(S.inst).some(sampleSound)) ensureOrchestra();
@@ -2164,9 +2244,11 @@ function edgeEvents(from, to) {
     if (S.acc.chords) for (const m of voice(c0, T)) if (inSpan(t)) ev.push({ kind: 'chord', midi: m, t, dur: M * b * 0.98, vel: 0.45 });
     if (S.acc.bass) for (const k of (Array.isArray(feel.bass) || typeof feel.bass === 'object' ? feel.bass[M] : null) || [0]) if (inSpan(beatTime(x + k))) ev.push({ kind: 'bass', low: true, midi: bassOf(pcOf(c0.root + T)), t: beatTime(x + k), dur: b * 0.9, vel: 0.65 });
     if (S.acc.rhythm && S.feel !== 'none') {
-      for (const k of feel.kick[M] || [0]) if (inSpan(beatTime(x + k))) ev.push({ kind: 'kick', t: beatTime(x + k), soft: i > 1 });
+      // the genre's own drums, lighter: film drums keep to their big hits, kits get quiet hats
+      for (const k of feel.kick[M] || [0]) if (inSpan(beatTime(x + k)) && !(feel.kickKind && i > 1 && k !== 0)) ev.push({ kind: feel.kickKind || 'kick', t: beatTime(x + k), soft: i > 1 });
       for (const k of feel.snare[M] || []) if (inSpan(beatTime(x + k))) ev.push({ kind: 'snare', t: beatTime(x + k), soft: true });
-      for (let k = 0; k < M; k++) if (inSpan(beatTime(x + k))) ev.push({ kind: 'hat', t: beatTime(x + k), soft: true });
+      if (feel.hat) for (let k = 0; k < M; k++) if (inSpan(beatTime(x + k))) ev.push({ kind: feel.hat === 'ride' ? 'ride' : 'hat', t: beatTime(x + k), soft: true });
+      if (feel.kickKind && i === 1 && inSpan(beatTime(x + M - 1))) ev.push({ kind: 'swell', t: beatTime(x + M - 1), dur: beatTime(x + M) - beatTime(x + M - 1) });
     }
   }
   const cl = chordFor(plan, plan.segs[plan.segs.length - 1]), te = beatTime(last);
@@ -2395,7 +2477,7 @@ function scheduleSungLine(ctx, out, at, from, to) {
     const mid = median(Array.from(L.m.slice(k0, k1 + 1)));
     const o = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
     if (env) o.setPeriodicWave(waveFor(ctx, voiceHarm(env, mid))); else o.type = 'triangle';
-    lp.type = 'lowpass'; lp.frequency.value = 9000;
+    lp.type = 'lowpass'; lp.frequency.value = Math.min(9000, ctx.sampleRate * 0.45);
     o.frequency.setValueCurveAtTime(freqs, start, dur);
     g.gain.setValueAtTime(0, start); g.gain.setValueCurveAtTime(gains, start, dur);
     o.connect(lp).connect(g).connect(out); o.start(start); o.stop(start + dur + 0.05);
@@ -2437,6 +2519,65 @@ function scheduleRegion(ctx, bus, at, a, b) {
   }
   scheduleLayers(ctx, bus, at, a, b);
 }
+// ---------- space: the room the playback sounds in ----------
+// A reverb from decaying noise, darker as it fades (a hall more so); dry, room, plate or hall.
+const SPACES = { dry: null, room: { len: 0.9, wet: 0.16, dark: 0.35, pre: 0.008 }, plate: { len: 1.8, wet: 0.2, dark: 0.1, pre: 0.012 }, hall: { len: 3.2, wet: 0.3, dark: 0.55, pre: 0.025 } };
+const irCache = new Map();
+function impulse(ctx, name) {
+  const sp = SPACES[name], key = name + ':' + ctx.sampleRate;
+  if (irCache.has(key)) return irCache.get(key);
+  const sr = ctx.sampleRate, n = Math.round(sp.len * sr), pre = Math.round(sp.pre * sr), buf = ctx.createBuffer(2, n + pre, sr);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    let lp = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / sr, k = sp.dark * Math.min(0.95, t / sp.len * 1.2 + 0.2);
+      lp = lp * k + (Math.random() * 2 - 1) * (1 - k);
+      d[pre + i] = lp * Math.pow(10, -3 * t / sp.len);
+    }
+  }
+  irCache.set(key, buf);
+  return buf;
+}
+// Sends what goes into `bus` through the chosen space as well.
+function addSpace(ctx, bus, dest) {
+  const sp = SPACES[S.space];
+  if (!sp) return;
+  const cv = ctx.createConvolver(), wet = ctx.createGain();
+  cv.buffer = impulse(ctx, S.space); wet.gain.value = sp.wet;
+  bus.connect(cv).connect(wet).connect(dest);
+}
+
+// ---------- the build: the theme more than once, growing ----------
+// With Plays set to twice or three times: the first statement without drums, choir or
+// counter-melody and plainer; the last with everything, a whole step higher (when Play plays the
+// score, so no recorded voice is left behind in the old key).
+let busyOverride = null;
+function buildPlan(a, b) {
+  const n = +S.repeats || 1, span = scoreView() && backingSpan();
+  if (n < 2 || !span || a >= span.to - 0.01) return null;
+  return { n, a, b, span, theme: span.to - span.from, total: (span.to - a) + (n - 2) * (span.to - span.from) + (b - span.from) };
+}
+function withStatement(k, n, fn) {
+  const acc = { ...S.acc }, lift = S.lift, busy = busyOverride, mid = midRepeat;
+  if (k === 0) { S.acc.rhythm = false; S.acc.choir = false; S.acc.counter = false; busyOverride = 0.3; }
+  if (k === n - 1 && S.hear === 'score') S.lift = 2;
+  midRepeat = k < n - 1;
+  try { return fn(); } finally { Object.assign(S.acc, acc); S.lift = lift; busyOverride = busy; midRepeat = mid; }
+}
+// Schedules [a, b) at `at`, as a build when one is set; returns how long it lasts.
+function scheduleBuild(ctx, bus, at, a, b) {
+  const B = buildPlan(a, b);
+  if (!B) { scheduleRegion(ctx, bus, at, a, b); return b - a; }
+  let t = at;
+  for (let k = 0; k < B.n; k++) {
+    const from = k === 0 ? a : B.span.from, to = k === B.n - 1 ? b : B.span.to;
+    withStatement(k, B.n, () => scheduleRegion(ctx, bus, t, from, to));
+    t += to - from;
+  }
+  return t - at;
+}
+
 // Starting can wait (the audio engine on the first press, instrument samples, the mic for Loop):
 // the button turns into Stop at once, a press meanwhile cancels the start, and only the latest
 // start may begin playing.
@@ -2444,6 +2585,7 @@ let playToken = 0;
 const liveBuses = new Set();
 function playBus(ctx) {
   const bus = ctx.createGain(); bus.connect(ctx.destination);
+  addSpace(ctx, bus, ctx.destination);
   liveBuses.add(bus);
   return bus;
 }
@@ -2472,15 +2614,15 @@ async function startMain(btn) {
   if (S.loop && S.hear !== 'voice' && scoreView() && !S.listening) { try { await startMic(); } catch {} }
   if (!stillStarting(token)) return;
   S.starting = 0;
-  const { a, b } = playRegion(), len = Math.max(0.2, b - a);
+  const { a, b } = playRegion(), build = buildPlan(a, b), len = Math.max(0.2, build ? build.total : b - a);
   const bus = playBus(ctx);
   // what is playing, for the spectrum under the tuner
   const an = ctx.createAnalyser(); an.fftSize = 8192; an.smoothingTimeConstant = 0.3; bus.connect(an);
-  const play = { t0: ctx.currentTime + 0.1, bus, btn, region: { from: a, len }, loop: S.loop, an, fbuf: new Float32Array(an.frequencyBinCount) };
+  const play = { t0: ctx.currentTime + 0.1, bus, btn, region: { from: a, len, build }, loop: S.loop, an, fbuf: new Float32Array(an.frequencyBinCount) };
   S.play = play;
   const iterate = at => {
     if (S.play !== play) return;
-    scheduleRegion(ctx, bus, at, a, b);
+    scheduleBuild(ctx, bus, at, a, b);
     play.timer = play.loop
       ? setTimeout(() => iterate(at + len), Math.max(0, (at + len - ctx.currentTime - 0.35) * 1000))
       : setTimeout(stopPlay, Math.max(0, (at + len - ctx.currentTime + 0.6) * 1000));
@@ -2495,6 +2637,7 @@ $('loopBtn').onclick = () => {
   if (S.play && S.play.btn === $('playMain')) { stopPlay(); startMain($('playMain')); }
 };
 $('melSound').addEventListener('change', () => { if (!['voice', 'plain', 'profile'].includes($('melSound').value)) ensureOrchestra(); });
+$('melDouble').addEventListener('change', () => { const d = melDouble(); if (d && sampleSound(d.sound)) ensureOrchestra(); });
 for (const id of ['keySel', 'tuningSel', 'sres', 'sdetail']) $(id).addEventListener('change', () => retranscribeSoon());
 function setTranspose(v) {
   $('transpose').value = Math.max(-36, Math.min(36, v));
@@ -2708,7 +2851,7 @@ function tone(ctx, n, t, stretch, out, expr, sound) {
     dyn.gain.setValueAtTime(lvl(n.amp[0][1]), t);
     for (const [at, r] of n.amp.slice(1)) dyn.gain.linearRampToValueAtTime(lvl(r), t + (at - n.start) * stretch);
   }
-  lp.type = 'lowpass'; lp.frequency.value = harm ? 9000 : 2400;
+  lp.type = 'lowpass'; lp.frequency.value = harm ? Math.min(9000, ctx.sampleRate * 0.45) : 2400;
   if (env) {
     // a living voice: slow pitch drift and a little breath noise under the harmonics
     const drift = ctx.createOscillator(), dg = ctx.createGain();
@@ -2994,7 +3137,7 @@ function midiFile(base) {
       tracks.push({ name: L.name, channel: ch++, notes: L.notes.map(n => ({ ...n, midi: n.midi + T, offset: 0, bend: null, vel: Math.round(80 * Math.min(1.4, L.gain)) })) });
     const span = sc.tempo && pieceSpan();
     if (span) {
-      const DRUMS = { kick: 36, snare: 38, hat: 42, ride: 51, crash: 49 }, names = { chord: 'Chords', bass: 'Bass', drone: 'Drone', motif: 'Motif', harm: 'Harmonics', counter: 'Counter-melody' };
+      const DRUMS = { kick: 36, snare: 38, hat: 42, ride: 51, crash: 49, boom: 35, tom: 45, swell: 57 }, names = { chord: 'Chords', bass: 'Bass', drone: 'Drone', motif: 'Motif', harm: 'Harmonics', counter: 'Counter-melody' };
       const parts = new Map();
       for (const e of allEvents(span.from, span.to)) {
         if (e.kind === 'melody') continue;
@@ -3060,13 +3203,14 @@ function exportRegion() {
 async function mixFile(base) {
   await ensureCtx();
   await prepareSounds();
-  const { a, b } = exportRegion(), sr = 44100, lead = 0.05, tail = 2.5;
-  const off = new OfflineAudioContext(1, Math.ceil((b - a + lead + tail) * sr), sr);
+  const { a, b } = exportRegion(), sr = 44100, lead = 0.05, tail = 3.5, B = buildPlan(a, b), len = B ? B.total : b - a;
+  const off = new OfflineAudioContext(1, Math.ceil((len + lead + tail) * sr), sr);
   const bus = off.createGain(); bus.connect(off.destination);
-  scheduleRegion(off, bus, lead, a, b);
+  addSpace(off, bus, off.destination);
+  scheduleBuild(off, bus, lead, a, b);
   const x = (await off.startRendering()).getChannelData(0);
   let end = x.length;
-  while (end > (b - a + lead) * sr && Math.abs(x[end - 1]) < 2e-4) end--;
+  while (end > (len + lead) * sr && Math.abs(x[end - 1]) < 2e-4) end--;
   let pk = 0;
   for (let i = 0; i < end; i++) pk = Math.max(pk, Math.abs(x[i]));
   const g = pk > 1e-6 ? 0.89 / pk : 1, out = new Float32Array(Math.min(x.length, end + Math.round(0.2 * sr)));
@@ -3709,7 +3853,15 @@ function headAt(now) {
   if (armed()) return armHead(now);
   const P = S.play;
   if (!P || P.groove || !S.take) return null;
-  if (P.region) { const el = now - P.t0, L = P.region.len; return P.region.from + (P.loop ? ((el % L) + L) % L : el); }
+  if (P.region) {
+    const L = P.region.len, el = P.loop ? (((now - P.t0) % L) + L) % L : now - P.t0, B = P.region.build;
+    if (!B) return P.region.from + el;
+    // in a build: the first statement from where it started, then each again from the top
+    const first = B.span.to - B.a;
+    if (el < first) return B.a + el;
+    const x = el - first, k = Math.min(B.n - 2, Math.floor(x / B.theme));
+    return B.span.from + (x - k * B.theme);
+  }
   return S.take.start + (now - P.t0);
 }
 function zoomBy(f, atX) {
@@ -3771,7 +3923,7 @@ function draw() {
   follow(pts, sv ? [...S.take.score.notes.map(n => ({ midi: n.midi + transpose(), end: sEnd(n) })),
     ...bev.filter(e => e.midi != null && e.kind !== 'melody').map(e => ({ midi: e.midi, end: e.t + e.dur })), ...layerNotes] : [...notes, ...layerNotes], t0, t1);
   const lo = S.view.center - S.view.span / 2, hi = S.view.center + S.view.span / 2;
-  const drumH = sv && bev.some(e => e.kind === 'kick' || e.kind === 'hat' || e.kind === 'ride') ? 30 : 0;
+  const drumH = sv && bev.some(e => DRUM_KINDS.includes(e.kind)) ? 30 : 0;
   const gut = 44, waveH = tv && S.take.voice ? 28 : 0, PH = H - waveH - drumH;
   const X = t => gut + (t - t0) / (t1 - t0) * (W - gut);
   S.lastView = { t0, t1, gut, W };
@@ -3846,7 +3998,7 @@ function draw() {
     }
     // drum strip under the roll: shaker, snare, kick
     if (drumH) {
-      const lanes = { hat: 0, ride: 0, snare: 1, kick: 2 }, lh = drumH / 3;
+      const lanes = { hat: 0, ride: 0, swell: 0, crash: 0, snare: 1, tom: 1, kick: 2, boom: 2 }, lh = drumH / 3;
       g2.fillStyle = colors.grid; g2.fillRect(gut, PH, W - gut, 1);
       g2.font = `9px ${colors.font}`; g2.fillStyle = colors.muted;
       g2.fillText('shk', 8, PH + lh * 0.5); g2.fillText('snr', 8, PH + lh * 1.5); g2.fillText('kick', 8, PH + lh * 2.5);

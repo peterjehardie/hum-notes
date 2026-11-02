@@ -231,7 +231,11 @@ const KEY_PROFILES = {
 };
 // keys written with flats: F, B♭, E♭, A♭, D♭, G♭ major and their relative minors
 const usesFlats = key => !!key && (key.mode === 'major' ? [5, 10, 3, 8, 1, 6] : [2, 7, 0, 5, 10, 3]).includes(key.root);
-const spell = (m, key) => (usesFlats(key) ? FLAT_NAMES : NAMES)[pcOf(m)] + (Math.floor(m / 12) - 1);
+// note names in a key: flats in flat keys, except a minor key's raised 6th and 7th (C♯ in D minor)
+const spell = (m, key) => {
+  const raised = key && key.mode === 'minor' && [9, 11].includes(pcOf(m - key.root));
+  return (usesFlats(key) && !raised ? FLAT_NAMES : NAMES)[pcOf(m)] + (Math.floor(m / 12) - 1);
+};
 const keyName = key => key ? (usesFlats(key) ? FLAT_NAMES : NAMES)[key.root] + (key.mode === 'major' ? ' major' : ' minor') : '';
 
 // The singer's own reference pitch: circular mean of where steady pitch sits between the
@@ -444,6 +448,8 @@ const CHORD_SETS = {
 //   jazz:  sevenths and ninths, plus the approach chords that lead into ii and V (VI7, II7, III7)
 //   pop:   the key's chords with IV and vi preferred and iii avoided, added ninths on I and IV
 //   rock:  the ♭VII and ♭VI of rock, voiced as open fifths (power chords)
+//   epic:  film-score minor: i, ♭VI, ♭III and ♭VII preferred (the i–♭VI–♭III–♭VII loop), the Dorian
+//          IV; in major the borrowed ♭VI and ♭VII; open voicings with octaves
 const COLOURS = {
   plain: { major: [], minor: [] },
   modal: { major: [[10, '', '♭VII', 0.5], [7, 'm', 'v', 0.25]], minor: [[5, '', 'IV', 0.4], [7, 'm', 'v', 0.4]] },
@@ -454,9 +460,11 @@ const COLOURS = {
   jazz: { major: [[9, '', 'VI7', 0.3], [2, '', 'II7', 0.25], [4, '', 'III7', 0.15]], minor: [[2, '', 'II7', 0.2], [0, '', 'I7', 0.1]] },
   pop: { major: [], minor: [] },
   rock: { major: [[10, '', '♭VII', 0.45], [8, '', '♭VI', 0.25]], minor: [] },
+  epic: { major: [[8, '', '♭VI', 0.4], [10, '', '♭VII', 0.4], [5, 'm', 'iv', 0.15]], minor: [[5, '', 'IV', 0.2]] },
 };
 // how much a colour wants each of the key's own chords (by numeral)
-const COLOUR_PULL = { pop: { IV: 0.25, vi: 0.3, V: 0.15, iii: -0.35, 'vii°': -0.3, VI: 0.2, VII: 0.2, III: 0.1 }, rock: { VII: 0.3, VI: 0.15, IV: 0.1 } };
+const COLOUR_PULL = { pop: { IV: 0.25, vi: 0.3, V: 0.15, iii: -0.35, 'vii°': -0.3, VI: 0.2, VII: 0.2, III: 0.1 }, rock: { VII: 0.3, VI: 0.15, IV: 0.1 },
+  epic: { VI: 0.4, III: 0.3, VII: 0.4, iv: 0.15, 'ii°': -0.6, 'vii°': -0.6, iii: -0.3, vi: 0.2, IV: 0.1 } };
 const QUALITY = { '': [0, 4, 7], m: [0, 3, 7], '°': [0, 3, 6] };
 // harmonic function, for the progression preference: tonic, predominant, dominant
 const FUNC = {
@@ -486,6 +494,7 @@ function chordsOf(key, colour = 'plain') {
     let tones = [...QUALITY[q], ...ext];
     if (colour === 'modal' && q !== '°') tones = [0, 7, 14];
     if (colour === 'rock' && q !== '°') tones = [0, 7, 12];
+    if (colour === 'epic' && q !== '°') tones = [...QUALITY[q], 12];
     // blues chords and jazz approach chords carry their seventh in the name (G7, Am7)
     const sev = colour === 'blues' || (colour === 'jazz' && /7$/.test(roman));
     return { root, quality: q, q, x: sev ? '7' : '', label: sev ? (q === 'm' ? 'm7' : '7') : undefined, roman, pcs, tones, pull };
