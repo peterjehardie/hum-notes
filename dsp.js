@@ -440,35 +440,58 @@ const CHORD_SETS = {
 //   rich:  sevenths and ninths on every chord
 //   dark:  minor-mode chords borrowed into major (iv, ♭VI, ♭VII, ♭III), the ♭II in minor
 //   lift:  the heroic ♭VI – ♭VII – I climb, wide triads
+//   blues: dominant sevenths on I, IV and V only (their 7ths count as fitting: blue notes)
+//   jazz:  sevenths and ninths, plus the approach chords that lead into ii and V (VI7, II7, III7)
+//   pop:   the key's chords with IV and vi preferred and iii avoided, added ninths on I and IV
+//   rock:  the ♭VII and ♭VI of rock, voiced as open fifths (power chords)
 const COLOURS = {
   plain: { major: [], minor: [] },
   modal: { major: [[10, '', '♭VII', 0.5], [7, 'm', 'v', 0.25]], minor: [[5, '', 'IV', 0.4], [7, 'm', 'v', 0.4]] },
   rich: { major: [], minor: [] },
   dark: { major: [[5, 'm', 'iv', 0.5], [8, '', '♭VI', 0.5], [10, '', '♭VII', 0.35], [3, '', '♭III', 0.25]], minor: [[1, '', '♭II', 0.3]] },
   lift: { major: [[8, '', '♭VI', 0.55], [10, '', '♭VII', 0.6]], minor: [[0, '', 'I', 0.2]] },
+  blues: { major: [], minor: [] },
+  jazz: { major: [[9, '', 'VI7', 0.3], [2, '', 'II7', 0.25], [4, '', 'III7', 0.15]], minor: [[2, '', 'II7', 0.2], [0, '', 'I7', 0.1]] },
+  pop: { major: [], minor: [] },
+  rock: { major: [[10, '', '♭VII', 0.45], [8, '', '♭VI', 0.25]], minor: [] },
 };
+// how much a colour wants each of the key's own chords (by numeral)
+const COLOUR_PULL = { pop: { IV: 0.25, vi: 0.3, V: 0.15, iii: -0.35, 'vii°': -0.3, VI: 0.2, VII: 0.2, III: 0.1 }, rock: { VII: 0.3, VI: 0.15, IV: 0.1 } };
 const QUALITY = { '': [0, 4, 7], m: [0, 3, 7], '°': [0, 3, 6] };
 // harmonic function, for the progression preference: tonic, predominant, dominant
 const FUNC = {
   I: 'T', i: 'T', vi: 'T', iii: 'T', III: 'T', VI: 'T', '♭III': 'T',
   ii: 'P', 'ii°': 'P', IV: 'P', iv: 'P', '♭VI': 'P', '♭II': 'P',
   V: 'D', v: 'D', 'vii°': 'D', VII: 'D', '♭VII': 'D',
+  VI7: 'P', II7: 'P', III7: 'P', I7: 'P',
 };
 
 // The chords a colour can use. `pcs` is the triad (used to judge fit); `tones` adds the
 // colour's extensions (used for voicing); `pull` is how much the colour wants the chord.
 function chordsOf(key, colour = 'plain') {
-  const list = CHORD_SETS[key.mode].map(([deg, q, roman]) => [deg, q, roman, 0]).concat(COLOURS[colour][key.mode]);
+  if (!COLOURS[colour]) colour = 'plain';
+  const pulls = COLOUR_PULL[colour] || {};
+  let base = CHORD_SETS[key.mode].map(([deg, q, roman]) => [deg, q, roman, pulls[roman] || 0]);
+  // blues keeps to I, IV and V (i, iv and V in minor)
+  if (colour === 'blues') base = base.filter(([, , roman]) => ['I', 'IV', 'V', 'i', 'iv'].includes(roman));
+  const list = base.concat(COLOURS[colour][key.mode]);
   return list.map(([deg, q, roman, pull]) => {
-    const root = (key.root + deg) % 12, pcs = QUALITY[q].map(i => (root + i) % 12);
-    let ext = [];
-    if (colour === 'rich') ext = q === '' ? [roman === 'V' || roman === 'VII' || roman === '♭VII' ? 10 : 11, 14] : q === 'm' ? [10, 14] : [10];
+    const root = (key.root + deg) % 12;
+    let pcs = QUALITY[q].map(i => (root + i) % 12), ext = [];
+    const dominant = roman === 'V' || roman === 'VII' || roman === '♭VII' || /7$/.test(roman);
+    if (colour === 'rich' || colour === 'jazz') ext = q === '' ? [dominant ? 10 : 11, 14] : q === 'm' ? [10, 14] : [10];
     if (colour === 'modal' && q !== '°') ext = [14];
-    const tones = colour === 'modal' && q !== '°' ? [0, 7, 14] : [...QUALITY[q], ...ext];
-    return { root, quality: q, roman, pcs, tones, pull };
+    if (colour === 'blues') { ext = [10]; pcs = [...pcs, (root + 10) % 12]; }
+    if (colour === 'pop' && q === '' && (roman === 'I' || roman === 'IV')) ext = [14];
+    let tones = [...QUALITY[q], ...ext];
+    if (colour === 'modal' && q !== '°') tones = [0, 7, 14];
+    if (colour === 'rock' && q !== '°') tones = [0, 7, 12];
+    // blues chords and jazz approach chords carry their seventh in the name (G7, Am7)
+    const sev = colour === 'blues' || (colour === 'jazz' && /7$/.test(roman));
+    return { root, quality: q, q, x: sev ? '7' : '', label: sev ? (q === 'm' ? 'm7' : '7') : undefined, roman, pcs, tones, pull };
   });
 }
-const chordName = (c, key) => (usesFlats(key) || c.roman.startsWith('♭') ? FLAT_NAMES : NAMES)[c.root] + c.quality;
+const chordName = (c, key) => (usesFlats(key) || (c.roman || '').startsWith('♭') ? FLAT_NAMES : NAMES)[c.root] + (c.label ?? c.quality);
 
 // Chords for each segment (two bars, a bar or half a bar): how well each chord of the colour fits
 // the melody notes sounding in it (chord tones good, a semitone against a chord tone bad, other

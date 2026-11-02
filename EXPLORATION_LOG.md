@@ -36,3 +36,9 @@ Non-binding exploration log: a record of what was tried and dropped. Nothing her
 - A test pressed Space right after typing the tempo: Space went into the tempo box, not to Record. That is how text boxes behave, so left as is.
 - Drum fills only appear where the tune rests on the beat before a new phrase; the 10-note test tune has none, so fills were only checked by reading the code path, not heard.
 - Not done this round: beatbox recorded as a layer over the take, drawing bar lines on the roll, a "Try another" with real variation (needs alternative choices inside the arranger), section repeat/reorder.
+
+## 2026-11-02 · Genre fingerprint
+
+- First built a song lookup ("query by humming"): steps and long-short ratios of the melody, three-step pieces looked up in an index of 31 public-domain tunes, then a note-by-note local alignment; it found the right tune in 124 of 124 simulated hums. Dropped before shipping: the aim was the genre of the melody, not which song it is. The tune data survives only as test melodies for the genre fingerprint (outside the repo).
+- Genre fingerprint calibrated on 28 labelled melodies (folk tunes, hymns, classics, made-up blues/jazz/lo-fi/rock/bossa/reggae/dance/ballad/pop lines): an expected genre first in 23, in the top three in 27. A rock riff first came out as pop; a "short repeated riff notes" trait for rock (and "singable note lengths" for pop) fixed it.
+- Moods were replaced by genres as the starting point: the old mood names still load as the genre they became (heroic → anthem, dramatic → cinematic, light → children's song, sad → ballad).
