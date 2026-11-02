@@ -29,3 +29,10 @@ Non-binding exploration log: a record of what was tried and dropped. Nothing her
 - "Try another" (a new arranger seed) was added and taken out again: the seed only moves small decorations and loudness, the bass and counter-melody come out the same, so it changed almost nothing.
 - Busy first only reached the bass (and only below the middle); now it scales inner-voice decoration and the counter-melody's quiet-phrase threshold too.
 - Writing (arranged / patterns) and Texture were two controls where Texture, Spacing and Register did nothing under Arranged; merged into one Accompaniment control, with the others hidden when they do not apply. Folk, Dramatic and Light moods switched to patterns so their named texture is heard.
+
+## 2026-11-02 · Rhythm and backing round
+
+- The pulse menu first read "Count-in + click / + drums"; with it the transport no longer fitted one row at 1440 px. Shortened to Count-in / Click / Drums (the tooltips say the count-in is included) and "Undo take" to "Undo".
+- A test pressed Space right after typing the tempo: Space went into the tempo box, not to Record. That is how text boxes behave, so left as is.
+- Drum fills only appear where the tune rests on the beat before a new phrase; the 10-note test tune has none, so fills were only checked by reading the code path, not heard.
+- Not done this round: beatbox recorded as a layer over the take, drawing bar lines on the roll, a "Try another" with real variation (needs alternative choices inside the arranger), section repeat/reorder.

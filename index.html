@@ -47,6 +47,10 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 .playbtn.on { background: var(--text); border-color: var(--text); color: var(--panel); }
 .meter-cluster { order: 5; flex: 1 1 100%; flex-wrap: nowrap; gap: 12px; padding: 8px 0 2px; border-top: 1px solid var(--line); }
 .meter-cluster .meter { width: 180px; flex: none; height: 6px; }
+.mixrow .ctl { display: grid; grid-template-columns: minmax(0, 118px) minmax(60px, 1fr) 40px; gap: 6px; }
+.mixrow .ctl > .nosel { grid-column: 1; }
+.pulsebpm { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.pulsebpm input { width: 56px; }
 .status { flex: 1; min-width: 0; font-size: 12.5px; color: var(--muted); min-height: 17px; line-height: 1.35; }
 #recMode button { padding: 0 9px; }
 
@@ -223,6 +227,10 @@ dialog form { text-align: right; margin-top: 12px; }
     <div class="seg" id="recKind" data-key="recKind" role="group" aria-label="What you are recording">
       <button data-v="hum" class="on" title="A melody: hum, sing or whistle">Hum</button><button data-v="beat" title="A drum groove: beatbox, tap or clap">Beat</button>
     </div>
+    <select id="pulseSel" title="What you hear while you record a new take: nothing, a bar counted in, or the count-in followed by a click or drums. Singing to a pulse gives the score an exact beat">
+      <option value="none">No pulse</option><option value="count" title="One bar counted in, then silence">Count-in</option><option value="click" title="One bar counted in, then a click on every beat">Click</option><option value="drums" title="One bar counted in, then the drum groove (from the Groove view)">Drums</option>
+    </select>
+    <label class="pulsebpm" id="pulseBpmWrap" hidden title="Tempo of the pulse"><input type="number" id="pulseBpm" min="40" max="240" step="1" value="90"> bpm</label>
   </div>
   <div class="cluster">
     <button class="playbtn primary" id="playMain" disabled>▶ Play</button>
@@ -238,7 +246,7 @@ dialog form { text-align: right; margin-top: 12px; }
   <div class="cluster end">
     <button id="openBtn" title="Open a recording (WAV, MP3, M4A…) to transcribe and accompany; or drop one on the page">Open file</button>
     <input type="file" id="fileIn" accept="audio/*,video/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.flac,.webm,.aif,.aiff" hidden>
-    <button id="undoRec" disabled title="Bring back the take as it was before the last recording">↶ Undo take</button>
+    <button id="undoRec" disabled title="Bring back the take as it was before the last recording">↶ Undo</button>
     <button id="save" disabled title="Download the result: MIDI, audio, or both in a zip (Ctrl+S)">Save ▾</button>
   </div>
 </section>
@@ -266,7 +274,8 @@ dialog form { text-align: right; margin-top: 12px; }
       <button class="small" id="edDup" title="Duplicate selected notes right after (Ctrl+D)">Duplicate</button>
       <span class="sep"></span>
       <button class="small" id="polishBtn" title="Move notes that sit badly (out of key, against the chord, awkward leaps, sung between two notes) to the nearby note that fits better · Ctrl+Z undoes">Polish melody</button>
-      <button class="small" id="tapBtn" title="Plays your take; tap the beat on the spacebar (or T). The score is then timed to your taps">Tap the beat</button>
+      <button class="small" id="beatBtn" title="Fix the beat: half or double tempo, move it half a beat, choose where bar 1 starts, or tap it">Beat ▾</button>
+      <button class="small" id="tapBtn" title="Plays your take; tap the beat on the spacebar. The score is then timed to your taps">Tap the beat</button>
       <button class="small" id="tapClear" hidden title="Forget the taps and let the beat be found from the humming again">Auto beat</button>
       <button class="small" id="edReset" hidden title="Throw away your edits and transcribe the take again">Re-transcribe</button>
       <span id="edInfo" title="Click a note to select · drag to move · drag its right edge to resize · double-click empty space to add · arrows nudge"></span>
@@ -332,6 +341,7 @@ dialog form { text-align: right; margin-top: 12px; }
             <option value="folk">Folk</option><option value="light">Light</option><option value="sad">Sad</option><option value="custom">Custom</option>
           </select></div></div>
           <div class="field"><span class="label">Level</span><div class="ctl"><input type="range" id="bvol" min="0" max="1" step="0.01" value="0.7"></div></div>
+          <div class="field" title="Keep this backing as A, change anything (that is B), then switch between them while it plays"><span class="label">Compare</span><div class="ctl"><button class="small" id="abBtn">Compare A/B</button><button class="small" id="abKeep" hidden>Keep this one</button><span class="val" id="abNow"></span></div></div>
           <h3>What plays</h3>
           <div class="field"><span class="label">Your tune</span><div class="toggles"><button class="led on" data-acc="melody" title="The melody you hummed, played by the sound chosen under Score">Melody</button></div></div>
           <div class="field"><span class="label">Harmony</span><div class="toggles" id="accToggles">
@@ -352,8 +362,18 @@ dialog form { text-align: right; margin-top: 12px; }
           <div class="field" id="fSpacing" title="How far apart the chord notes sit"><span class="label">Spacing</span><div class="seg" data-key="spacing"><button data-v="close" class="on">Close</button><button data-v="open">Open</button><button data-v="wide">Wide</button></div></div>
           <div class="field" id="fRegister" title="How high the chords sit"><span class="label">Register</span><div class="seg" data-key="register"><button data-v="low">Low</button><button data-v="mid" class="on">Mid</button><button data-v="high">High</button></div></div>
           <div class="field" id="fMotif" title="How the backing uses the hook: Riff repeats it under the tune, Echo answers it a bar later, Sequence repeats it step by step higher, Slow plays it at half speed, Mirror turns it upside down"><span class="label">Hook echo as</span><div class="seg" data-key="motifUse"><button data-v="ostinato" class="on">Riff</button><button data-v="echo">Echo</button><button data-v="sequence">Sequence</button><button data-v="slow">Slow</button><button data-v="mirror">Mirror</button></div></div>
-          <div class="field" title="The drum pattern. Mine: the groove you beatboxed or tapped (Beat mode, or the Groove view)"><span class="label">Drum feel</span><div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="march">March</button><button data-v="drive">Drive</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div></div>
+          <div class="field" id="fBassLock" title="In the pattern accompaniments: a bass note on every kick drum hit, so bass and drums lock together"><span class="label">Bass</span><div class="seg" data-key="bassLock"><button data-v="off" class="on">Own rhythm</button><button data-v="on">With the kick</button></div></div>
+          <h3>Beat</h3>
+          <div class="field" title="The drum pattern. Mine: the groove you beatboxed or tapped (Beat mode, or the Groove view)"><span class="label">Drum feel</span><div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="halftime">Half-time</button><button data-v="shuffle">Shuffle</button><button data-v="drive">Drive</button><button data-v="march">March</button><button data-v="waltz">Waltz</button><button data-v="bossa">Bossa</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div></div>
+          <div class="field" title="On: the drums listen to the tune: hats keep to the beat when you sing busily and fill in when you rest, a kick under notes that push ahead of the beat, fills into each new phrase, a crash on loud phrase starts, half-time in quiet phrases, and an ending on your last note. Off: the plain pattern"><span class="label">Drums follow</span><div class="seg" data-key="drumFollow"><button data-v="on" class="on">The tune</button><button data-v="off">Plain pattern</button></div></div>
+          <div class="field" title="Swing: notes on the off-beat played late, long-short instead of even. From your singing: as much as you swung; Straight: even; Swung: a fixed swing"><span class="label">Swing</span><div class="seg" data-key="swing"><button data-v="auto" class="on" id="swingAuto">From your singing</button><button data-v="straight">Straight</button><button data-v="swung">Swung</button></div></div>
           <div class="field"><span class="label">Meter</span><div class="ctl"><select id="meterSel" title="Beats in a bar"><option value="auto">Auto</option><option value="2">2/4</option><option value="3">3/4</option><option value="4">4/4</option></select></div></div>
+          <p class="hint">Beat found wrong? Use <b>Beat ▾</b> above the roll: half or double tempo, move it half a beat, or say where bar 1 starts.</p>
+          <h3>Intro &amp; ending</h3>
+          <div class="field" title="Bars of backing before the tune comes in: its first chord with the bass and drums"><span class="label">Intro</span><div class="seg" data-key="intro"><button data-v="0" class="on">None</button><button data-v="1">1 bar</button><button data-v="2">2 bars</button></div></div>
+          <div class="field" title="Stop: everything ends with your last note. Ring: the last chord rings on for a bar"><span class="label">Ending</span><div class="seg" data-key="ending"><button data-v="stop">Stop</button><button data-v="ring" class="on">Ring</button></div></div>
+          <h3>Mix</h3>
+          <div id="mixer"></div>
         </div>
       </div>
 
@@ -438,7 +458,7 @@ dialog form { text-align: right; margin-top: 12px; }
         <div class="btnrow">
           <button class="small" id="copy" disabled title="Copy the notes as text">Copy notes</button>
           <button class="small" id="dlBtn" disabled title="MIDI, audio, or both in a zip">Download…</button>
-          <button class="small" id="clear" disabled title="Start over (Undo take brings it back)">Clear take</button>
+          <button class="small" id="clear" disabled title="Start over (Undo brings it back)">Clear take</button>
         </div>
       </div>
     </div>
