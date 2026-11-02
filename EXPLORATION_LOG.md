@@ -17,3 +17,8 @@ Non-binding exploration log: a record of what was tried and dropped. Nothing her
 - The Studio direction (electric blue, mono capital labels, lamp switches, bordered panels) read as too technical; wanted something classier and simpler. Not deleted: kept as one of six styles behind a style picker, so looks can be compared side by side. Classic (ink on paper, Instrument Serif headings, black main buttons) became the default.
 - Colours per style were first written out by hand (40 tokens × 3 tones); replaced by themes.js working out the derived colours from six base colours per tone, with text pulled darker or lighter until it reaches 4.5:1 contrast.
 - The saved look first used the settings key `style`, which the Score tab's Style slider already used; the slider overwrote it on every save. Saved as `look` instead.
+
+## 2026-11-02 · Save as downloads
+
+- Save used to post the take to a local helper server (takes/ folder), so on GitHub Pages it only showed a message. Now Save opens a download menu (MIDI, audio of what Play plays, the raw recording, or all in a zip); the takes-folder save stays as an extra row on localhost only.
+- Audio is rendered offline (OfflineAudioContext) through the same scheduling code as Play; the voice-colour wave cache had to become one per audio context for that.

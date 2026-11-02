@@ -2109,11 +2109,10 @@ function updateButtons() {
   const has = !!(S.take && S.take.notes && S.take.notes.length && !S.recording);
   $('play').disabled = !(S.take && S.take.points && !S.recording);
   $('playMain').disabled = !(S.layer === 'groove' ? S.groove : S.take && S.take.points) || S.recording;
-  $('copy').disabled = !has; $('midi').disabled = !has;
-  $('wav').disabled = !(S.take && S.take.voice && !S.recording);
+  $('copy').disabled = !has;
+  $('dlBtn').disabled = !(S.take && S.take.points && !S.recording);
   $('clear').disabled = !S.take;
-  $('save').disabled = !(S.take && S.take.voice && !S.recording);
-  $('save').textContent = S.take && S.take.savedAs ? '✓ Saved' : 'Save';
+  $('save').disabled = !(S.take && S.take.points && !S.recording);
   $('undoRec').disabled = !S.history.length || S.recording;
   $('undoRec').title = S.history.length ? 'Back to ' + S.history[S.history.length - 1].label : 'Nothing to undo yet';
   updateRecButton();
@@ -2153,14 +2152,17 @@ function renderNotes() {
 // ---------- playback ----------
 // The synth note: your voice's harmonic mix (or a plain triangle), and the sung pitch
 // curve and loudness blended in by Flourish. Detected flourishes always play in full.
+// a PeriodicWave belongs to the context that made it (live playback, or an offline render)
 const waves = new WeakMap();
 function waveFor(ctx, harm) {
-  if (!waves.has(harm)) {
+  if (!waves.has(ctx)) waves.set(ctx, new WeakMap());
+  const m = waves.get(ctx);
+  if (!m.has(harm)) {
     const imag = new Float32Array(harm.length + 1);
     imag.set(harm, 1);
-    waves.set(harm, ctx.createPeriodicWave(new Float32Array(harm.length + 1), imag));
+    m.set(harm, ctx.createPeriodicWave(new Float32Array(harm.length + 1), imag));
   }
-  return waves.get(harm);
+  return m.get(harm);
 }
 const voiceWaves = new WeakMap();
 // Harmonic mix for a note played through a voice envelope, cached per envelope and semitone.
@@ -2444,34 +2446,36 @@ function download(blob, name) {
   a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
-$('copy').onclick = () => {
+// The notes as text (what Copy notes puts on the clipboard, and notes.txt in the zip).
+function notesText() {
   const tk = S.take;
   if (scoreView()) {
     const sc = tk.score, key = scoreKey(), T = transpose();
-    const txt = [keyName(key), sc.tempo ? `♩=${Math.round(sc.tempo.bpm)}` : ''].filter(Boolean).join(' · ') + '\n'
+    let txt = [keyName(key), sc.tempo ? `♩=${Math.round(sc.tempo.bpm)}` : ''].filter(Boolean).join(' · ') + '\n'
       + sc.notes.map(n => spell(n.midi + T, key) + ' ' + scoreLen(n)).join('  ');
-    navigator.clipboard.writeText(txt).then(() => { $('copy').textContent = 'Copied'; setTimeout(() => $('copy').textContent = 'Copy', 1200); });
-    return;
+    for (const L of tk.layers || []) if (L.notes && L.notes.length) txt += `\n${L.name}: ` + L.notes.map(n => spell(n.midi + T, key) + ' ' + scoreLen(n)).join('  ');
+    return txt;
   }
   const head = gridOn() ? `♩=${Math.round(tk.tempo.bpm)}  ` : '';
   let txt = head + tk.notes.map(n => noteName(n.midi).replace('♯', '#') + tags(n) + ' ' + lengthText(n)).join('  ');
   if (partialsOn()) for (const tr of liveTracks()) if (tr.k > 1)
-    txt += `
-H${tr.k} (${harmonicLabel(tr.k)}): ` + tr.notes.map(n => noteName(n.midi).replace('♯', '#') + centsText(n) + ' ' + lengthText(n)).join('  ');
-  navigator.clipboard.writeText(txt).then(() => { $('copy').textContent = 'Copied'; setTimeout(() => $('copy').textContent = 'Copy', 1200); });
-};
-$('midi').onclick = () => {
+    txt += `\nH${tr.k} (${harmonicLabel(tr.k)}): ` + tr.notes.map(n => noteName(n.midi).replace('♯', '#') + centsText(n) + ' ' + lengthText(n)).join('  ');
+  return txt;
+}
+$('copy').onclick = () => navigator.clipboard.writeText(notesText()).then(() => { $('copy').textContent = 'Copied'; setTimeout(() => $('copy').textContent = 'Copy notes', 1200); });
+
+// MIDI. Score view: the melody, each layer and every backing part as its own track on the score's
+// beat grid (drums on the GM drum channel). As sung: the melody and the kept harmonics.
+function midiFile(base) {
   const tk = S.take;
   if (scoreView()) {
     const sc = tk.score, T = transpose();
     const tracks = [{ name: 'Melody', channel: 0, notes: sc.notes.map(n => ({ ...n, midi: n.midi + T, offset: 0, bend: null, vel: 90 })) }];
     let ch = 1;
-    // each layer as its own track, on the same grid
     for (const L of tk.layers || []) if (!L.muted && L.notes && L.notes.length && ch < 9)
       tracks.push({ name: L.name, channel: ch++, notes: L.notes.map(n => ({ ...n, midi: n.midi + T, offset: 0, bend: null, vel: Math.round(80 * Math.min(1.4, L.gain)) })) });
     const span = sc.tempo && backingSpan();
     if (span) {
-      // every backing part as its own track, timed on the score's beat grid; drums on the GM drum channel
       const DRUMS = { kick: 36, snare: 38, hat: 42, crash: 49 }, names = { chord: 'Chords', bass: 'Bass', drone: 'Drone', motif: 'Motif', harm: 'Harmonics', counter: 'Counter-melody' };
       const parts = new Map();
       for (const e of allEvents(span.from, span.to)) {
@@ -2489,8 +2493,7 @@ $('midi').onclick = () => {
         if (channel <= 15) tracks.push({ name, channel, notes });
       }
     }
-    download(new Blob([buildMidi(tracks, { grid: !!sc.tempo, tempo: sc.tempo, res: sc.res || sres(), base: tk.start })], { type: 'audio/midi' }), `hum-arrangement-${stamp()}.mid`);
-    return;
+    return { name: `${base}.mid`, blob: new Blob([buildMidi(tracks, { grid: !!sc.tempo, tempo: sc.tempo, res: sc.res || sres(), base: tk.start })], { type: 'audio/midi' }) };
   }
   const tracks = [{ name: 'Melody', channel: 0, notes: tk.notes }];
   if (partialsOn()) {
@@ -2501,12 +2504,13 @@ $('midi').onclick = () => {
       tracks.push({ name: 'H' + tr.k, channel: ch++, notes: tr.notes.map(n => ({ ...n, vel: Math.max(15, Math.min(127, Math.round(100 + n.level * 2))) })) });
     }
   }
-  download(new Blob([buildMidi(tracks, { grid: gridOn(), tempo: tk.tempo, res: res(), base: tk.start })], { type: 'audio/midi' }), `hum-${stamp()}.mid`);
-};
-// The recording as a WAV; with layers, a mix of the take and every unmuted layer, each at an even level.
-$('wav').onclick = () => {
+  return { name: `${base}.mid`, blob: new Blob([buildMidi(tracks, { grid: gridOn(), tempo: tk.tempo, res: res(), base: tk.start })], { type: 'audio/midi' }) };
+}
+
+// The recording as sung (auto-tune applied when it is on), with every unmuted layer mixed in at an even level.
+function recordingFile(base) {
   const tk = S.take, sr = tk.voice.sr, layers = (tk.layers || []).filter(L => !L.muted && L.voice);
-  if (!layers.length) { download(encodeWav(renderedVoice(), sr), `hum-${stamp()}.wav`); return; }
+  if (!layers.length) return { name: `${base}-recording.wav`, blob: encodeWav(renderedVoice(), sr) };
   const even = d => { let pk = 0; for (const v of d) pk = Math.max(pk, Math.abs(v)); return pk > 1e-6 ? Math.min(0.7 / pk, 60) : 1; };
   const parts = [{ d: renderedVoice(), t0: tk.voice.t0, g: 1 }, ...layers.map(L => ({ d: L.voice.sr === sr ? L.voice.data : resample(L.voice.data, L.voice.sr, sr), t0: L.voice.t0, g: L.gain }))];
   const t0 = Math.min(...parts.map(x => x.t0)), t1 = Math.max(...parts.map(x => x.t0 + x.d.length / sr));
@@ -2517,13 +2521,104 @@ $('wav').onclick = () => {
   }
   let pk = 0; for (const v of out) pk = Math.max(pk, Math.abs(v));
   if (pk > 0.95) for (let i = 0; i < out.length; i++) out[i] *= 0.95 / pk;
-  download(encodeWav(out, sr), `hum-mix-${stamp()}.wav`);
-};
+  return { name: `${base}-recording.wav`, blob: encodeWav(out, sr) };
+}
+
+// The audio of what Play plays (Score, Both, My voice or Sung line, with the layers), for the whole
+// piece, rendered offline: faster than real time and exactly what the speakers would get.
+const HEAR_NAMES = { score: 'score', both: 'score-and-voice', voice: 'voice', line: 'sung-line' };
+function exportRegion() {
+  const tk = S.take, span = scoreView() && backingSpan();
+  let a = span ? span.from : tk.start, b = span ? span.to : tk.end;
+  for (const L of tk.layers || []) if (!L.muted) { a = Math.min(a, L.start); b = Math.max(b, L.end); }
+  return { a, b };
+}
+async function mixFile(base) {
+  await ensureCtx();
+  await prepareSounds();
+  const { a, b } = exportRegion(), sr = 44100, lead = 0.05, tail = 2.5;
+  const off = new OfflineAudioContext(1, Math.ceil((b - a + lead + tail) * sr), sr);
+  const bus = off.createGain(); bus.connect(off.destination);
+  scheduleRegion(off, bus, lead, a, b);
+  const x = (await off.startRendering()).getChannelData(0);
+  let end = x.length;
+  while (end > (b - a + lead) * sr && Math.abs(x[end - 1]) < 2e-4) end--;
+  let pk = 0;
+  for (let i = 0; i < end; i++) pk = Math.max(pk, Math.abs(x[i]));
+  const g = pk > 1e-6 ? 0.89 / pk : 1, out = new Float32Array(Math.min(x.length, end + Math.round(0.2 * sr)));
+  for (let i = 0; i < out.length; i++) out[i] = x[i] * g;
+  return { name: `${base}-${HEAR_NAMES[S.hear] || 'mix'}.wav`, blob: encodeWav(out, sr) };
+}
+
+// A zip with the files stored as they are (WAV and MIDI hardly shrink anyway).
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u8) { let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC_TABLE[(c ^ u8[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function zipBlob(files) {
+  const enc = new TextEncoder(), body = [], dir = [], d = new Date();
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let offset = 0;
+  for (const f of files) {
+    const data = new Uint8Array(await f.blob.arrayBuffer()), name = enc.encode(f.name), crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, time, 2], [12, date, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]]
+      .forEach(([o, v, n]) => n === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
+    const c = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, time, 2], [14, date, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4],
+      [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, n]) => n === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true));
+    body.push(h, name, data); dir.push(c, name);
+    offset += 30 + name.length + data.length;
+  }
+  const size = dir.reduce((s, p) => s + p.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, offset, true);
+  return new Blob([...body, ...dir, e], { type: 'application/zip' });
+}
+
+// Save: download the result as MIDI, audio, the raw recording, or all of it in one zip.
+async function saveAs(kind) {
+  closePopover();
+  const tk = S.take;
+  if (!tk || !tk.points || S.recording) return;
+  const base = `hum-${stamp()}`, st = $('status');
+  try {
+    if (kind === 'midi') { const f = midiFile(base); download(f.blob, f.name); st.textContent = `Downloaded ${f.name}`; return; }
+    if (kind === 'recording') { const f = recordingFile(base); download(f.blob, f.name); st.textContent = `Downloaded ${f.name}`; return; }
+    st.textContent = 'Rendering the audio…';
+    const mix = await mixFile(base);
+    if (kind === 'audio') { download(mix.blob, mix.name); st.textContent = `Downloaded ${mix.name}`; return; }
+    const files = [midiFile(base), mix];
+    if (tk.voice && S.hear !== 'voice') files.push(recordingFile(base));
+    files.push({ name: `${base}-notes.txt`, blob: new Blob([notesText() + '\n'], { type: 'text/plain' }) });
+    const zip = await zipBlob(files.map(f => ({ name: `${base}/${f.name}`, blob: f.blob })));
+    download(zip, `${base}.zip`);
+    st.textContent = `Downloaded ${base}.zip: MIDI, ${HEAR_NAMES[S.hear] || 'mix'} audio` + (files.some(f => f.name.endsWith('-recording.wav')) ? ', your recording' : '') + ' and the notes as text';
+  } catch (err) { st.textContent = 'Could not make the download: ' + err.message; console.warn(err); }
+}
+function openSaveMenu(anchor) {
+  const tk = S.take;
+  if (!tk || !tk.points || S.recording) return;
+  const heard = { score: 'Score', both: 'Both', voice: 'My voice', line: 'Sung line' }[S.hear];
+  openPopover(anchor, pop => {
+    popRow(pop, 'Download', [
+      { text: 'MIDI', title: scoreView() ? 'Melody, layers and every backing part as separate tracks' : 'The melody as sung, and its harmonics', do: () => saveAs('midi') },
+      { text: `Audio · ${heard}`, title: 'A WAV of what Play plays now, the whole piece, with the layers', do: () => saveAs('audio') },
+      { text: 'Recording', title: 'Your own voice and the layers, as recorded (WAV)', disabled: !tk.voice, do: () => saveAs('recording') },
+      { text: 'All · zip', title: 'MIDI, the audio, your recording and the notes as text, in one zip file', do: () => saveAs('zip') },
+    ]);
+    const p = document.createElement('p');
+    p.className = 'hint'; p.style.margin = '0';
+    p.innerHTML = `The audio is what <b>Play</b> plays (set by <b>${heard}</b> next to it). Your take also stays in this browser between visits.`;
+    pop.appendChild(p);
+    if (!HOSTED) popRow(pop, 'Takes folder', [{ text: tk.savedAs ? '✓ Saved there' : 'Save to takes/', title: 'Into the takes folder next to the page (needs the hum-notes server)', do: () => { closePopover(); saveToDisk(tk); } }]);
+  });
+}
+$('save').onclick = () => openSaveMenu($('save'));
+$('dlBtn').onclick = () => openSaveMenu($('dlBtn'));
 
 // ---------- takes on disk (takes/ next to the page, via serve.py) ----------
 async function saveToDisk(tk) {
   if (!tk.voice) return;
-  if (HOSTED) { $('status').textContent = 'Saving to disk is off on this shared copy — your takes stay in this browser; use WAV or MIDI to download'; return; }
+  if (HOSTED) { $('status').textContent = 'The takes folder only exists on your own computer: use Save to download instead'; return; }
   const name = 'take-' + stamp();
   const summary = {
     mic: S.mic ? S.mic.getAudioTracks()[0]?.label : null,
@@ -2542,7 +2637,6 @@ async function saveToDisk(tk) {
   } catch { $('status').textContent += ' · could not save'; }
   updateButtons();
 }
-$('save').onclick = () => S.take && saveToDisk(S.take);
 
 // Reopen a take saved in takes/ (its recording and pitch line), e.g. openSavedTake('take-2026-10-22-12-19-49').
 async function openSavedTake(name) {
@@ -3496,6 +3590,7 @@ addEventListener('keydown', e => {
   if (['SELECT', 'INPUT', 'TEXTAREA'].includes(e.target.tagName) || $('keysDlg').open) return;
   if (TAP.on && (e.code === 'Space' || e.key === 't' || e.key === 'T')) { e.preventDefault(); if (!e.repeat) tap(); return; }
   if (e.target.tagName === 'BUTTON' && (e.code === 'Space' || e.key === 'Enter')) return;   // the focused button handles it
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) { e.preventDefault(); openSaveMenu($('save')); return; }
   if (editKeys(e)) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const modes = { 1: 'new', 2: 'next', 3: 'layer', 4: 'punch' };

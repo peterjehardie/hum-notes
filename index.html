@@ -236,7 +236,7 @@ dialog form { text-align: right; margin-top: 12px; }
   </div>
   <div class="cluster end">
     <button id="undoRec" disabled title="Bring back the take as it was before the last recording">↶ Undo take</button>
-    <button id="save" disabled>Save</button>
+    <button id="save" disabled title="Download the result: MIDI, audio, or both in a zip (Ctrl+S)">Save ▾</button>
   </div>
 </section>
 
@@ -428,8 +428,7 @@ dialog form { text-align: right; margin-top: 12px; }
         <h3>Take</h3>
         <div class="btnrow">
           <button class="small" id="copy" disabled title="Copy the notes as text">Copy notes</button>
-          <button class="small" id="midi" disabled title="Download a MIDI file (score view: every part as its own track)">MIDI</button>
-          <button class="small" id="wav" disabled title="Download the recording (with its layers) as a WAV file">WAV</button>
+          <button class="small" id="dlBtn" disabled title="MIDI, audio, or both in a zip">Download…</button>
           <button class="small" id="clear" disabled title="Start over (Undo take brings it back)">Clear take</button>
         </div>
       </div>
@@ -449,6 +448,7 @@ dialog form { text-align: right; margin-top: 12px; }
     <tr><td>Score edits</td><td><kbd>Delete</kbd> · arrows nudge (<kbd>Shift</kbd>: octave / beat) · <kbd>S</kbd> split · <kbd>J</kbd> join · <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd>/<kbd>D</kbd>/<kbd>A</kbd> · <kbd>Ctrl</kbd>+<kbd>Z</kbd>/<kbd>Y</kbd></td></tr>
     <tr><td><kbd>Esc</kbd></td><td>Clear selection and start marker</td></tr>
     <tr><td><kbd>T</kbd> · <kbd>Shift</kbd>+<kbd>T</kbd></td><td>Next style · next tone (light, mid, dark)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd></td><td>Save: download MIDI, audio, or both in a zip</td></tr>
     <tr><td><kbd>?</kbd></td><td>This list</td></tr>
   </table>
   <form method="dialog"><button class="primary">Close</button></form>
