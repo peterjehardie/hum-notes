@@ -22,3 +22,10 @@ Non-binding exploration log: a record of what was tried and dropped. Nothing her
 
 - Save used to post the take to a local helper server (takes/ folder), so on GitHub Pages it only showed a message. Now Save opens a download menu (MIDI, audio of what Play plays, the raw recording, or all in a zip); the takes-folder save stays as an extra row on localhost only.
 - Audio is rendered offline (OfflineAudioContext) through the same scheduling code as Play; the voice-colour wave cache had to become one per audio context for that.
+
+## 2026-11-02 · Play race, open file, backing clean-up
+
+- Play waited (audio engine, samples, mic for Loop) before it counted as playing; a second press in that gap started a second playback and the button kept "Stop" as its label. Now the button changes at once, a press while starting cancels, and Stop fades every playback bus.
+- "Try another" (a new arranger seed) was added and taken out again: the seed only moves small decorations and loudness, the bass and counter-melody come out the same, so it changed almost nothing.
+- Busy first only reached the bass (and only below the middle); now it scales inner-voice decoration and the counter-melody's quiet-phrase threshold too.
+- Writing (arranged / patterns) and Texture were two controls where Texture, Spacing and Register did nothing under Arranged; merged into one Accompaniment control, with the others hidden when they do not apply. Folk, Dramatic and Light moods switched to patterns so their named texture is heard.

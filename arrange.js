@@ -511,18 +511,18 @@ function arInner(c, bass) {
 // never in parallel) on strong beats, scale passing notes between; contrary or oblique motion;
 // mostly steps, leaps of a sixth at most and turned back by a step; moving while the melody holds
 // or rests and holding while it moves fast; each phrase entered a beat after the melody and ended
-// on a note of the cadence chord. Silent in phrases with energy under 0.35. With opts.motif (scale
+// on a note of the cadence chord. Silent in phrases with energy under 0.35 (scaled by density). With opts.motif (scale
 // steps) the opening notes of each phrase lean towards that shape. With a form it prefers to
 // speak in the melody's rests, keeps quieter under busy singing, and echoes the phrase's last
 // three or four notes (an octave away) in the gap after it when they fit.
 function arCounter(c, motif) {
-  const { phrases, mel, reg, meter, energyAt, segAt, info, key, keySc, vel, form, busy } = c;
+  const { phrases, mel, reg, meter, energyAt, segAt, info, key, keySc, vel, form, busy, density } = c;
   const G = 0.5, BEAM = 64, centre = (reg.counterLow + reg.counterHigh) / 2;
   const strongGap = meter.beats === 4 ? 2 : meter.beats;
   const out = [];
   let carry = null;   // last strong-beat pair from the previous phrase, for the parallels rule
   for (const ph of phrases) {
-    if (ph.energy < 0.35 || !ph.notes.length) continue;
+    if (ph.energy * (0.5 + density) < 0.35 || !ph.notes.length) continue;
     const start = Math.ceil((ph.notes[0].start + 1) / G - AR_EPS) * G, K = Math.round((ph.end - start) / G);
     if (K < 4) continue;
     const pitches = ph.notes.map(nt => nt.midi).sort((a, b) => a - b);
@@ -874,7 +874,9 @@ function arrange(melody, key, meter, segs, opts) {
     dens: form ? (t, len) => arClamp(energyAt(t) * (0.5 + density) * (1.25 - 0.6 * busy(t, len || meter.beats)))
       : t => arClamp(energyAt(t) * (0.5 + density)),
     // how much the inner voices decorate (neighbours, suspensions, passing notes)
-    act: form ? (t, len) => arClamp(energyAt(t) + 0.15 - 0.35 * busy(t, len || meter.beats)) : t => energyAt(t),
+    // density (0..1, 0.5 = as written) scales how busy every part may get
+    act: form ? (t, len) => arClamp((energyAt(t) + 0.15 - 0.35 * busy(t, len || meter.beats)) * (0.5 + density)) : t => arClamp(energyAt(t) * (0.5 + density)),
+    density,
     vel: (v, t) => Math.round(arClamp(v + (form && t != null ? swell(t) : 0) + (rnd() - 0.5) * 0.06, 0.05, 1) * 1000) / 1000,
   };
   const strip = ev => ({ midi: ev.midi, start: ev.start, len: ev.len, vel: ev.vel });

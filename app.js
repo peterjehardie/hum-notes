@@ -15,7 +15,7 @@ const S = {
 };
 
 // ---------- settings (survive reloads) ----------
-const FIELDS = ['micSel', 'outSel', 'root', 'oct', 'wave', 'dvol', 'bpm', 'beats', 'mvol', 'detail', 'res', 'tune', 'speed', 'gate', 'flourish', 'prange', 'style', 'keySel', 'tuningSel', 'transpose', 'sres', 'meterSel', 'bvol', 'moodSel', 'melSound', 'lineSmooth', 'lineTune', 'lineVib', 'lineEven', 'lineGlide', 'sdetail', 'voiceSound', 'polishAmt'];
+const FIELDS = ['busy', 'micSel', 'outSel', 'root', 'oct', 'wave', 'dvol', 'bpm', 'beats', 'mvol', 'detail', 'res', 'tune', 'speed', 'gate', 'flourish', 'prange', 'style', 'keySel', 'tuningSel', 'transpose', 'sres', 'meterSel', 'bvol', 'moodSel', 'melSound', 'lineSmooth', 'lineTune', 'lineVib', 'lineEven', 'lineGlide', 'sdetail', 'voiceSound', 'polishAmt'];
 const SEGS = ['lineEngine', 'recKind', 'colours', 'hear', 'playMode', 'voicing', 'snap', 'rhythm', 'timbre', 'partials', 'layer', 'chordStyle', 'chordRate', 'harmony', 'sound', 'spacing', 'register', 'feel', 'motifUse', 'writing', 'energy', 'formAware'];
 for (const mode of ['major', 'minor']) for (let r = 0; r < 12; r++)
   $('keySel').add(new Option(keyName({ root: r, mode }), r + ':' + mode));
@@ -37,7 +37,20 @@ function saveSettings() {
 function setSeg(key, v) {
   S[key] = v;
   const el = document.querySelector(`.seg[data-key="${key}"]`);
-  for (const b of el.children) b.classList.toggle('on', b.dataset.v === v);
+  if (el) for (const b of el.children) b.classList.toggle('on', b.dataset.v === v);
+  if (key === 'writing' || key === 'chordStyle') syncTexture();
+}
+// One Accompaniment control stands for two settings: writing (arranged voices or patterns) and,
+// for patterns, the texture. Controls that only matter for one of them are hidden for the other.
+function syncTexture() {
+  const v = S.writing === 'arranged' ? 'voices' : S.chordStyle;
+  for (const b of $('texSeg').children) b.classList.toggle('on', b.dataset.v === v);
+  updateBackingFields();
+}
+function updateBackingFields() {
+  const patterns = S.writing !== 'arranged';
+  $('fSpacing').hidden = !patterns; $('fRegister').hidden = !patterns;
+  $('fMotif').hidden = !S.acc.motif;
 }
 let colors = {}, themeReady = false;
 // A look is a style (type, shapes, palette: themes.js) in a tone (light, mid, dark).
@@ -72,7 +85,7 @@ function stepLook(styleStep, toneStep) {
   for (const k of SEGS) if (o[k]) setSeg(k, o[k]);
   if (o.acc) Object.assign(S.acc, o.acc);
   S.loop = !!o.loop; $('loopBtn').classList.toggle('on', S.loop);
-  for (const b of $('accToggles').children) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
+  for (const b of document.querySelectorAll('[data-acc]')) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
   applyTheme(o.theme || 'light', o.look || 'classic');
   showValues();
 })();
@@ -702,7 +715,7 @@ function openMainMenu(anchor) {
     popRow(pop, 'Played by', [...LAYER_SOUNDS, ['profile', 'My voice profile']].map(([v, text]) => ({ text, on: $('melSound').value === v,
       disabled: v === 'profile' && !S.profile, do: () => { $('melSound').value = v; $('melSound').dispatchEvent(new Event('change', { bubbles: true })); again(); } })));
     popRow(pop, 'In Score', [{ text: S.acc.melody ? '✓ plays' : 'silent', on: S.acc.melody, title: 'The melody in Score playback (also under Backing → What plays)',
-      do: () => { document.querySelector('#accToggles [data-acc="melody"]').click(); again(); } }]);
+      do: () => { document.querySelector('[data-acc="melody"]').click(); again(); } }]);
   });
 }
 function openLayerMenu(id, anchor) {
@@ -750,7 +763,7 @@ function finishBeat(tk) {
   const n = Object.values(S.groove.lanes).reduce((s, l) => s + l.length, 0);
   $('status').textContent = `Groove: ${Math.round(S.groove.bpm)} bpm · ${S.groove.beats}/4 · ${S.groove.bars} bar${S.groove.bars > 1 ? 's' : ''} · ${n} hits`
     + (S.groove.swing > 0.55 ? ' · swung' : '');
-  if (tk.voice) fetch(`save/beat-${stamp()}.wav`, { method: 'POST', body: encodeWav(tk.voice.data, tk.voice.sr) }).catch(() => {});
+  if (tk.voice && !HOSTED && tk.start != null) fetch(`save/beat-${stamp()}.wav`, { method: 'POST', body: encodeWav(tk.voice.data, tk.voice.sr) }).catch(() => {});
 }
 function renderGrooveCtl() {
   const g = S.groove;
@@ -963,7 +976,7 @@ function updateScoreInfo() {
   if (sc.tempo) parts.push(Math.round(sc.tempo.bpm) + ' bpm' + (sc.tempo.source === 'your taps' ? ' (your taps)' : sc.beatMap && sc.tempo.drift > 0.25 ? ' (follows your tempo)' : ''));
   parts.push(sc.tuning.used ? `your A = ${(440 * Math.pow(2, sc.tuning.offset / 12)).toFixed(0)} Hz` : 'A = 440 Hz');
   const plan = S.acc.motif && backingPlan();
-  if (plan && plan.motif) parts.push('motif ' + plan.motif.notes.map(n => spell(n.midi + transpose(), scoreKey())).join(' ') + (plan.motif.fallback ? ' (opening)' : ` ×${plan.motif.occurrences.length}`));
+  if (plan && plan.motif) parts.push('hook ' + plan.motif.notes.map(n => spell(n.midi + transpose(), scoreKey())).join(' ') + (plan.motif.fallback ? ' (opening)' : ` ×${plan.motif.occurrences.length}`));
   $('scoreInfo').textContent = parts.join(' · ');
   const T = transpose();
   if ($('keySel').value !== 'auto') {
@@ -1187,10 +1200,11 @@ function openChordMenu(sg, anchor) {
     ]);
   });
 }
-for (const b of $('accToggles').children) b.onclick = () => {
+for (const b of document.querySelectorAll('[data-acc]')) b.onclick = () => {
   S.acc[b.dataset.acc] = !S.acc[b.dataset.acc];
-  b.classList.toggle('on', S.acc[b.dataset.acc]);
-  saveSettings();
+  for (const x of document.querySelectorAll(`[data-acc="${b.dataset.acc}"]`)) x.classList.toggle('on', S.acc[b.dataset.acc]);
+  saveSettings(); updateBackingFields();
+  if (b.dataset.acc === 'melody') renderParts();
   if (b.dataset.acc === 'harmonics') renderPartials();
   if (b.dataset.acc === 'motif') updateScoreInfo();
 };
@@ -1329,7 +1343,8 @@ const FEELS = {
 // plan. Registers follow the sung melody: bass under it, inner voices and counter-melody above.
 function arrangement(plan, T) {
   const sc = S.take.score, r = sres();
-  const sig = [T, S.energy, S.acc.motif, plan.sig, plan.segs.map(sg => sg.pick || 0).join('')].join('|');
+  const busy = +$('busy').value;
+  const sig = [T, S.energy, S.acc.motif, plan.sig, plan.segs.map(sg => sg.pick || 0).join(''), busy].join('|');
   if (plan.arr && plan.arrSig === sig) return plan.arr;
   const melody = sc.notes.map(n => ({ midi: n.midi + T, start: n.qs / r, end: n.qe / r }));
   const lowest = Math.min(...melody.map(n => n.midi));
@@ -1344,7 +1359,7 @@ function arrangement(plan, T) {
     counterLow: Math.max(57, lowest + 12), counterHigh: Math.max(76, lowest + 31),
   };
   plan.arr = arrange(melody, key, plan.meter, segs, {
-    energy: S.energy, density: 0.5, register, motif: S.acc.motif && plan.motif ? plan.motif.intervals : undefined, form: plan.form || undefined,
+    energy: S.energy, density: busy, register, motif: S.acc.motif && plan.motif ? plan.motif.intervals : undefined, form: plan.form || undefined,
   });
   plan.arrSig = sig;
   return plan.arr;
@@ -1358,8 +1373,10 @@ function backingEvents(from, to) {
   const sc = S.take.score, key = sc.key, T = transpose(), r = sres(), b = spb();
   const { meter, groove } = plan, beats = meter.beats, feel = FEELS[S.feel] || FEELS.backbeat;
   const ev = [];
-  const arr = S.writing === 'arranged' ? arrangement(plan, T) : null;
-  const energyAt = t => arr ? arr.energyAt((t - sc.tempo.t0) / b) : 0.7;
+  // the arranger's parts: chords and bass when the accompaniment is Moving voices; its counter-melody
+  // and energy curve whatever the accompaniment
+  const A = arrangement(plan, T), arr = S.writing === 'arranged' ? A : null;
+  const energyAt = t => A.energyAt((t - sc.tempo.t0) / b);
   const inSpan = t => t >= from - 1e-6 && t < to - 1e-6;
   // bass and drone sit below the lowest sung note (at least a fourth under it, not below E1)
   const lowest = Math.min(...sc.notes.map(n => n.midi + T));
@@ -1441,8 +1458,8 @@ function backingEvents(from, to) {
     const put = (kind, e, extra = {}) => { const t = beatTime(e.start); if (inSpan(t)) ev.push({ kind, midi: e.midi, t, dur: Math.min(e.len * b, to - t), vel: e.vel, ...extra }); };
     if (S.acc.chords) for (const line of arr.inner) for (const e of line) put('chord', e);
     if (S.acc.bass) for (const e of arr.bass) put('bass', e, { low: true });
-    if (S.acc.counter) for (const e of arr.counter) put('counter', e);
   }
+  if (S.acc.counter) for (const e of A.counter) { const t = beatTime(e.start); if (inSpan(t)) ev.push({ kind: 'counter', midi: e.midi, t, dur: Math.min(e.len * b, to - t), vel: e.vel }); }
   if (S.acc.rhythm && S.feel === 'mine' && S.groove && S.groove.length) {
     // your groove, laid on the score's bars at the score's tempo
     const g = S.groove, firstBar = plan.segs.length ? plan.segs[0].start : meter.offset;
@@ -1518,7 +1535,7 @@ function orchestral(ctx, out, e, at) {
 // ---------- sections: bars grouped (A, B, …), each with its own mood and an optional fill at its end ----------
 // A section's mood changes texture, sound, spacing, register, rhythm feel and drone for its bars;
 // harmony colour and writing stay as set for the whole piece.
-const SECTION_FIELDS = ['chordStyle', 'sound', 'spacing', 'register', 'feel'];
+const SECTION_FIELDS = ['writing', 'chordStyle', 'sound', 'spacing', 'register', 'feel'];
 function sectionsOf() {
   const plan = backingPlan(), secs = S.take && S.take.sections;
   if (!plan || !secs || !secs.length || !plan.segs.length) return null;
@@ -1646,9 +1663,9 @@ function scheduleBacking(ctx, out, tAt, from, to, events) {
 const MOODS = {
   lofi: { harmony: 'plain', chordRate: '1', chordStyle: 'pad', sound: 'synth', spacing: 'close', register: 'mid', feel: 'backbeat', drone: true, writing: 'blocks', energy: 'flat' },
   heroic: { harmony: 'lift', chordRate: '1', chordStyle: 'pulse', sound: 'orchestra', spacing: 'wide', register: 'mid', feel: 'march', drone: true, writing: 'arranged', energy: 'build' },
-  dramatic: { harmony: 'dark', chordRate: '2', chordStyle: 'ostinato', sound: 'orchestra', spacing: 'wide', register: 'mid', feel: 'drive', drone: false, writing: 'arranged', energy: 'arc' },
-  folk: { harmony: 'modal', chordRate: '0.5', chordStyle: 'strum', sound: 'orchestra', spacing: 'open', register: 'mid', feel: 'lilt', drone: true, writing: 'arranged', energy: 'arc' },
-  light: { harmony: 'rich', chordRate: '1', chordStyle: 'arp', sound: 'orchestra', spacing: 'close', register: 'high', feel: 'sparse', drone: false, writing: 'arranged', energy: 'flat' },
+  dramatic: { harmony: 'dark', chordRate: '2', chordStyle: 'ostinato', sound: 'orchestra', spacing: 'wide', register: 'mid', feel: 'drive', drone: false, writing: 'blocks', energy: 'arc' },
+  folk: { harmony: 'modal', chordRate: '0.5', chordStyle: 'strum', sound: 'orchestra', spacing: 'open', register: 'mid', feel: 'lilt', drone: true, writing: 'blocks', energy: 'arc' },
+  light: { harmony: 'rich', chordRate: '1', chordStyle: 'arp', sound: 'orchestra', spacing: 'close', register: 'high', feel: 'sparse', drone: false, writing: 'blocks', energy: 'flat' },
   sad: { harmony: 'dark', chordRate: '0.5', chordStyle: 'pad', sound: 'orchestra', spacing: 'open', register: 'mid', feel: 'none', drone: false, writing: 'arranged', energy: 'arc' },
 };
 const SHAPE_SEGS = ['harmony', 'chordRate', 'chordStyle', 'sound', 'spacing', 'register', 'feel', 'writing', 'energy', 'formAware'];
@@ -1659,13 +1676,23 @@ function applyMood(name) {
   applyingMood = true;
   for (const k of SHAPE_SEGS) setSeg(k, m[k]);
   S.acc.drone = m.drone;
-  for (const b of $('accToggles').children) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
+  for (const b of document.querySelectorAll('[data-acc]')) b.classList.toggle('on', !!S.acc[b.dataset.acc]);
   applyingMood = false;
   $('moodSel').value = name;
   saveSettings(); renderChords();
   if (S.sound === 'orchestra') ensureOrchestra();
 }
 $('moodSel').addEventListener('change', () => applyMood($('moodSel').value));
+$('texSeg').onclick = e => {
+  const v = e.target.dataset.v;
+  if (!v) return;
+  if (v === 'voices') S.writing = 'arranged'; else { S.writing = 'blocks'; S.chordStyle = v; }
+  syncTexture();
+  if (!applyingMood) $('moodSel').value = 'custom';
+  saveSettings(); renderChords();
+};
+$('busy').addEventListener('input', () => { if (!applyingMood) $('moodSel').value = 'custom'; });
+syncTexture();
 for (const k of SHAPE_SEGS) {
   const prevHandler = segHandlers[k];
   segHandlers[k] = () => {
@@ -1937,23 +1964,46 @@ function scheduleRegion(ctx, bus, at, a, b) {
   }
   scheduleLayers(ctx, bus, at, a, b);
 }
+// Starting can wait (the audio engine on the first press, instrument samples, the mic for Loop):
+// the button turns into Stop at once, a press meanwhile cancels the start, and only the latest
+// start may begin playing.
+let playToken = 0;
+const liveBuses = new Set();
+function playBus(ctx) {
+  const bus = ctx.createGain(); bus.connect(ctx.destination);
+  liveBuses.add(bus);
+  return bus;
+}
+function beginStart(btn) {
+  stopPlay();
+  S.starting = ++playToken;
+  btn.textContent = '■ Stop'; btn.classList.add('on');
+  return S.starting;
+}
+const stillStarting = token => S.starting === token;
 async function startMain(btn) {
+  const token = beginStart(btn);
   const ctx = await ensureCtx();
+  if (!stillStarting(token)) return;
   if (S.layer === 'groove') {
-    const bus = ctx.createGain(); bus.connect(ctx.destination);
+    S.starting = 0;
+    const bus = playBus(ctx);
     S.play = { t0: ctx.currentTime + 0.05, bus, btn, groove: true };
     grooveClock.start(ctx, bus, S.play.t0);
     if (!S.loop) S.play.timer = setTimeout(stopPlay, stepTime(S.groove, S.groove.length) * 2000 + 300);
-    btn.dataset.label = btn.textContent;
-    btn.textContent = '■ Stop'; btn.classList.add('on');
     return;
   }
   await prepareSounds();
-  const { a, b } = playRegion(), len = Math.max(0.2, b - a);
+  if (!stillStarting(token)) return;
   // looping the score keeps the mic on, so you can hum along and see how you sit on the chords
   if (S.loop && S.hear !== 'voice' && scoreView() && !S.listening) { try { await startMic(); } catch {} }
-  const bus = ctx.createGain(); bus.connect(ctx.destination);
-  const play = { t0: ctx.currentTime + 0.1, bus, btn, region: { from: a, len }, loop: S.loop };
+  if (!stillStarting(token)) return;
+  S.starting = 0;
+  const { a, b } = playRegion(), len = Math.max(0.2, b - a);
+  const bus = playBus(ctx);
+  // what is playing, for the spectrum under the tuner
+  const an = ctx.createAnalyser(); an.fftSize = 8192; an.smoothingTimeConstant = 0.3; bus.connect(an);
+  const play = { t0: ctx.currentTime + 0.1, bus, btn, region: { from: a, len }, loop: S.loop, an, fbuf: new Float32Array(an.frequencyBinCount) };
   S.play = play;
   const iterate = at => {
     if (S.play !== play) return;
@@ -1962,16 +2012,11 @@ async function startMain(btn) {
       ? setTimeout(() => iterate(at + len), Math.max(0, (at + len - ctx.currentTime - 0.35) * 1000))
       : setTimeout(stopPlay, Math.max(0, (at + len - ctx.currentTime + 0.6) * 1000));
   };
-  btn.dataset.label = btn.textContent;
-  btn.textContent = '■ Stop'; btn.classList.add('on');
   S.view.mode = 'take';
   iterate(play.t0);
 }
-$('playMain').onclick = () => {
-  const same = S.play && S.play.btn === $('playMain');
-  if (S.play) stopPlay();
-  if (!same) startMain($('playMain'));
-};
+// one press plays, the next stops (also while it is still getting ready)
+$('playMain').onclick = () => { if (S.play || S.starting) stopPlay(); else startMain($('playMain')); };
 $('loopBtn').onclick = () => {
   S.loop = !S.loop; $('loopBtn').classList.toggle('on', S.loop); saveSettings();
   if (S.play && S.play.btn === $('playMain')) { stopPlay(); startMain($('playMain')); }
@@ -2114,6 +2159,7 @@ function updateButtons() {
   $('clear').disabled = !S.take;
   $('save').disabled = !(S.take && S.take.points && !S.recording);
   $('undoRec').disabled = !S.history.length || S.recording;
+  $('openBtn').disabled = S.recording;
   $('undoRec').title = S.history.length ? 'Back to ' + S.history[S.history.length - 1].label : 'Nothing to undo yet';
   updateRecButton();
 }
@@ -2263,11 +2309,14 @@ function renderedVoice() {
 
 // mode: 'voice' | 'notes' | 'both' | 'partials' | 'transcription'
 async function startPlay(mode, btn) {
+  const token = beginStart(btn);
   const ctx = await ensureCtx();
   if (S.sound === 'orchestra' && mode === 'transcription') await ensureOrchestra();
+  if (!stillStarting(token)) return;
+  S.starting = 0;
   const tk = S.take;
   const t0 = ctx.currentTime + 0.1;
-  const bus = ctx.createGain(); bus.connect(ctx.destination);
+  const bus = playBus(ctx);
   const nodes = [];
   let len = tk.end - tk.start;
   const voice = (mode === 'voice' || mode === 'both') && tk.voice;
@@ -2335,27 +2384,23 @@ async function startPlay(mode, btn) {
     }
   }
   S.play = { t0, bus, nodes, btn, timer: setTimeout(stopPlay, (len + 0.5) * 1000) };
-  btn.dataset.label = btn.textContent;
-  btn.textContent = '■ Stop'; btn.classList.add('on');
   S.view.mode = 'take';
 }
+// Stops whatever is playing or about to: every playback bus is faded out, not only the latest.
 function stopPlay() {
-  if (!S.play) return;
-  if (S.play.groove) grooveClock.stop();
-  clearTimeout(S.play.timer);
-  const b = S.play.bus;
-  b.gain.setTargetAtTime(0, S.ctx.currentTime, 0.02);
-  setTimeout(() => b.disconnect(), 200);
-  const btn = S.play.btn;
-  btn.textContent = btn.dataset.label; btn.classList.remove('on');
-  S.play = null;
+  S.starting = 0;
+  if (S.play) {
+    if (S.play.groove) grooveClock.stop();
+    clearTimeout(S.play.timer);
+    S.play = null;
+  }
+  for (const b of liveBuses) { b.gain.setTargetAtTime(0, S.ctx.currentTime, 0.02); setTimeout(() => b.disconnect(), 200); }
+  liveBuses.clear();
+  for (const btn of [$('playMain'), $('play')]) { btn.textContent = btn.dataset.base; btn.classList.remove('on'); }
 }
+for (const btn of [$('playMain'), $('play')]) btn.dataset.base = btn.textContent;
 function playButton(btn, mode) {
-  btn.onclick = () => {
-    const same = S.play && S.play.btn === btn;
-    if (S.play) stopPlay();
-    if (!same) startPlay(mode(), btn);
-  };
+  btn.onclick = () => { if (S.play || S.starting) stopPlay(); else startPlay(mode(), btn); };
 }
 playButton($('play'), () => S.playMode);
 
@@ -2638,6 +2683,79 @@ async function saveToDisk(tk) {
   updateButtons();
 }
 
+// ---------- open an audio file: transcribed and accompanied like a recorded take ----------
+// The file is run through the same pitch tracker as the mic (pitch-worklet.js), offline and faster
+// than real time. Works best on one voice, whistle or instrument at a time. In Beat mode the file
+// becomes a groove instead.
+async function readPitch(data, sr, onProgress) {
+  const off = new OfflineAudioContext(1, data.length, sr);
+  await off.audioWorklet.addModule('pitch-worklet.js?v=' + Date.now());
+  const src = off.createBufferSource(), buf = off.createBuffer(1, data.length, sr);
+  buf.copyToChannel(data, 0); src.buffer = buf;
+  const node = new AudioWorkletNode(off, 'pitch', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+  const pts = [], med = [], expected = Math.floor(data.length / 256) - 2;
+  node.port.onmessage = e => {
+    const d = e.data;
+    if (d.audio || d.recDone || d.t == null) return;
+    let m = NaN;
+    if (d.v) { med.push(hzToMidi(d.f)); if (med.length > 3) med.shift(); m = median(med); } else med.length = 0;
+    pts.push({ t: d.t, m, c: d.clarity, r: d.rms, s: 0 });
+    if (onProgress && pts.length % 400 === 0) onProgress(Math.min(1, pts.length / expected));
+  };
+  src.connect(node).connect(off.destination); src.start();
+  await off.startRendering();
+  // the tracker's messages can still be on their way: wait until they are all in (or stop coming)
+  await new Promise(done => {
+    let last = -1;
+    const iv = setInterval(() => { if (pts.length >= expected || pts.length === last) { clearInterval(iv); done(); } last = pts.length; }, 120);
+  });
+  return pts.sort((a, b) => a.t - b.t);
+}
+async function openAudioFile(file) {
+  if (!file || S.recording) return;
+  const st = $('status');
+  try {
+    const ctx = await ensureCtx();
+    stopPlay();
+    st.textContent = `Reading ${file.name}…`;
+    const dec = await ctx.decodeAudioData(await file.arrayBuffer());
+    const sr = dec.sampleRate, n = Math.min(dec.length, Math.round(sr * 300)), data = new Float32Array(n);
+    for (let c = 0; c < dec.numberOfChannels; c++) { const x = dec.getChannelData(c); for (let i = 0; i < n; i++) data[i] += x[i] / dec.numberOfChannels; }
+    const cut = dec.length > n ? ' (first 5 minutes)' : '';
+    if (S.recKind === 'beat') {
+      finishBeat({ voice: { t0: 0, sr, data } });
+      st.textContent = `${file.name}${cut} → ` + st.textContent;
+      return;
+    }
+    st.textContent = `Listening to ${file.name}${cut}…`;
+    const points = await readPitch(data, sr, f => { st.textContent = `Listening to ${file.name}${cut}… ${Math.round(f * 100)}%`; });
+    if (!points.some(p => !isNaN(p.m))) { st.textContent = `No clear pitch found in ${file.name} — it works best on one voice or instrument at a time`; return; }
+    pushHistory('the take before opening ' + file.name);
+    const tk = { start: 0, end: n / sr, points, voice: { t0: 0, sr, data }, grid: null, tempoScale: 1, notes: [], kind: 'hum', source: file.name };
+    S.take = tk; S.cursor = null; S.view.zoom = null;
+    ED.sel.clear(); ED.undo.length = 0; ED.redo.length = 0;
+    trimTake(tk);
+    S.view.mode = 'take';
+    retranscribe();
+    saveTake(); followTonic(tk); renderParts(); updateButtons();
+    const sc = tk.score;
+    st.textContent = `${file.name}${cut}: ${sc ? sc.notes.length : tk.notes.length} notes` + (sc && sc.key ? ` · ${keyName(sc.key)}` : '') + (sc && sc.tempo ? ` · about ${Math.round(sc.tempo.bpm)} bpm` : '')
+      + ' · Play to hear it with a backing; Undo take goes back';
+  } catch (err) { st.textContent = `Could not open ${file.name}: ${err.message}`; console.warn(err); }
+}
+$('openBtn').onclick = () => $('fileIn').click();
+$('fileIn').onchange = () => { const f = $('fileIn').files[0]; $('fileIn').value = ''; openAudioFile(f); };
+// drop an audio file anywhere on the page
+addEventListener('dragover', e => { if ([...(e.dataTransfer?.items || [])].some(i => i.kind === 'file')) { e.preventDefault(); document.body.classList.add('dropping'); } });
+addEventListener('dragleave', e => { if (!e.relatedTarget) document.body.classList.remove('dropping'); });
+addEventListener('drop', e => {
+  const f = [...(e.dataTransfer?.files || [])].find(x => /^audio\/|^video\//.test(x.type) || /\.(wav|mp3|m4a|aac|ogg|oga|opus|flac|webm|aif|aiff)$/i.test(x.name));
+  document.body.classList.remove('dropping');
+  if (!e.dataTransfer?.files?.length) return;
+  e.preventDefault();
+  if (f) openAudioFile(f); else $('status').textContent = 'That is not an audio file';
+});
+
 // Reopen a take saved in takes/ (its recording and pitch line), e.g. openSavedTake('take-2026-10-22-12-19-49').
 async function openSavedTake(name) {
   const ctx = await ensureCtx();
@@ -2721,7 +2839,7 @@ function showReadout(p) {
     const dots = $('beatdots').children;
     for (let i = 0; i < dots.length; i++) dots[i].classList.toggle('hit', b >= 0 && b % metro.beats === i);
   }
-  if (!p || !S.listening) {
+  if (!p || (!S.listening && !S.play)) {
     if (performance.now() - lastShown > 350) {
       $('big').innerHTML = '–'; $('hz').innerHTML = '&nbsp;'; $('interval').innerHTML = '&nbsp;';
       needle.style.left = '50%'; needle.classList.remove('good');
@@ -3484,9 +3602,9 @@ function draw() {
 
   // cursor / playhead
   let head = headAt(now);
-  // the chord under the playhead while looping, for the readout
+  // the chord under the playhead while playing, for the readout
   S.curChord = null;
-  if (S.play && S.play.loop && plan && head != null) {
+  if (S.play && plan && head != null) {
     const sg = plan.segs.find(x => head >= beatTime(x.start) && head < beatTime(x.end));
     if (sg) S.curChord = chordFor(plan, sg);
   }
@@ -3504,15 +3622,31 @@ function draw() {
   const em = $('emptyMsg'), empty = !S.take && !S.recording && !S.listening;
   if (em.hidden === empty) em.hidden = !empty;
 
-  showReadout(S.lastPitch);
-  drawSpectrum(head);
+  const playing = S.play && !S.play.groove && head != null ? playingPitch(head) : null;
+  showReadout(playing || S.lastPitch);
+  drawSpectrum(head, playing);
   requestAnimationFrame(draw);
+}
+// The melody note sounding at take time t during playback (score note in the score view), as {m, f}.
+function playingPitch(t) {
+  const tk = S.take;
+  if (!tk) return null;
+  if (scoreView() && S.hear !== 'voice' && S.hear !== 'line') {
+    const n = tk.score.notes.find(x => sStart(x) <= t && sEnd(x) > t);
+    if (!n) return null;
+    const m = n.midi + transpose();
+    return { m, f: midiToHz(m) };
+  }
+  const n = tk.notes.find(x => noteStart(x) <= t && noteEnd(x) > t);
+  if (!n) return null;
+  const m = n.midi + (n.offset || 0);
+  return { m, f: midiToHz(m) };
 }
 
 // Spectrum on a log-frequency axis with the voice's harmonics marked: live from the mic,
 // or the measured harmonic mix of the note being played back or clicked.
 const sc = $('spec'), sg = sc.getContext('2d');
-function drawSpectrum(head) {
+function drawSpectrum(head, playing) {
   const dpr = devicePixelRatio || 1, W = sc.clientWidth, H = sc.clientHeight;
   if (sc.width !== Math.round(W * dpr)) { sc.width = Math.round(W * dpr); sc.height = Math.round(H * dpr); }
   sg.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -3524,34 +3658,37 @@ function drawSpectrum(head) {
   for (const [f, s] of [[100, '100'], [1000, '1k'], [4000, '4k']]) { sg.fillRect(X(f), PH, 1, 3); sg.fillText(s, X(f) - 6, PH + 3); }
 
   let f0 = null, levels = null;
-  if (S.listening && S.analyser) {
-    S.analyser.getFloatFrequencyData(S.fbuf);
-    const binHz = S.ctx.sampleRate / S.analyser.fftSize;
+  const fromPlay = !!(S.play && S.play.an), live = !fromPlay && S.listening && S.analyser;
+  if (fromPlay || live) {
+    const an = fromPlay ? S.play.an : S.analyser, fbuf = fromPlay ? S.play.fbuf : S.fbuf;
+    an.getFloatFrequencyData(fbuf);
+    const binHz = S.ctx.sampleRate / an.fftSize;
     sg.strokeStyle = colors.muted; sg.globalAlpha = 0.6; sg.lineWidth = 1; sg.beginPath();
     for (let x = 0; x < W; x++) {
       const f = fLo * Math.pow(fHi / fLo, x / W), b = Math.round(f / binHz);
-      x ? sg.lineTo(x, Yd(S.fbuf[b])) : sg.moveTo(x, Yd(S.fbuf[b]));
+      x ? sg.lineTo(x, Yd(fbuf[b])) : sg.moveTo(x, Yd(fbuf[b]));
     }
     sg.stroke(); sg.globalAlpha = 1;
-    if (partialsOn()) {
+    const pitch = fromPlay ? playing : S.lastPitch;
+    if (pitch) {
+      f0 = pitch.f; levels = [];
+      for (let k = 1; k * f0 < fHi && k <= 24; k++) {
+        const b = Math.round(k * f0 / binHz);
+        let pk = -200;
+        for (let i = b - 2; i <= b + 2; i++) pk = Math.max(pk, fbuf[i] ?? -200);
+        levels.push(Yd(pk));
+      }
+    }
+    if (live && partialsOn()) {
       const pk = spectralPeaks(S.fbuf, binHz, 6000, -95).slice(0, 12), range = +$('prange').value;
       const t = S.ctx.currentTime;
       S.livePeaks = (S.livePeaks || []).filter(f => f.t > t - 9);
       if (pk.length) S.livePeaks.push({ t, pk: pk.filter(p => p.level >= pk[0].level - range).map(p => [hzToMidi(p.f), p.level - pk[0].level]) });
     }
-    if (S.lastPitch) {
-      f0 = S.lastPitch.f; levels = [];
-      for (let k = 1; k * f0 < fHi && k <= 24; k++) {
-        const b = Math.round(k * f0 / binHz);
-        let pk = -200;
-        for (let i = b - 2; i <= b + 2; i++) pk = Math.max(pk, S.fbuf[i] ?? -200);
-        levels.push(Yd(pk));
-      }
-    }
   } else {
+    // a note clicked in the Notes line: its measured harmonic mix
     let n = null;
-    if (S.play && S.take && head != null) n = S.take.notes.find(x => noteStart(x) <= head && noteEnd(x) >= head);
-    if (!n && S.harmShow && performance.now() < S.harmShow.until) n = S.harmShow.n;
+    if (S.harmShow && performance.now() < S.harmShow.until) n = S.harmShow.n;
     if (n && n.harm) {
       f0 = midiToHz(n.midi + (n.offset || 0));
       levels = Array.from(n.harm, h => Yd(20 * Math.log10(Math.max(h, 1e-5)) - 25));

@@ -73,6 +73,7 @@ body { display: grid; grid-template-rows: auto auto minmax(0, 1fr); height: 100v
 .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; pointer-events: none; text-align: center; padding: 20px; }
 .empty b { font-family: var(--display); font-weight: var(--display-weight); font-style: var(--display-style); font-size: 26px; line-height: 1.2; letter-spacing: -0.01em; }
 .empty span { color: var(--muted); max-width: 440px; }
+body.dropping .stage { outline: 2px dashed var(--accent); outline-offset: -6px; }
 .empty kbd { font: 600 11px var(--mono); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: 1px 5px; background: var(--raise); }
 
 /* the dock under the roll: one scrolling line per kind of thing */
@@ -235,6 +236,8 @@ dialog form { text-align: right; margin-top: 12px; }
     <span class="label">Input</span><div class="meter" title="Input level"><div id="level"></div></div>
   </div>
   <div class="cluster end">
+    <button id="openBtn" title="Open a recording (WAV, MP3, M4A…) to transcribe and accompany; or drop one on the page">Open file</button>
+    <input type="file" id="fileIn" accept="audio/*,video/*,.wav,.mp3,.m4a,.aac,.ogg,.opus,.flac,.webm,.aif,.aiff" hidden>
     <button id="undoRec" disabled title="Bring back the take as it was before the last recording">↶ Undo take</button>
     <button id="save" disabled title="Download the result: MIDI, audio, or both in a zip (Ctrl+S)">Save ▾</button>
   </div>
@@ -286,7 +289,7 @@ dialog form { text-align: right; margin-top: 12px; }
       <canvas id="cv"></canvas>
       <div class="empty" id="emptyMsg">
         <b>Hum a tune.</b>
-        <span>Press <kbd>Record</kbd> or <kbd>Space</kbd>, hum, sing or whistle, then stop. The notes, a score and a backing appear here. Then record the next part, or a layer on top.</span>
+        <span>Press <kbd>Record</kbd> or <kbd>Space</kbd>, hum, sing or whistle, then stop. Or drop a recording here (<kbd>Open file</kbd>). The notes, a score and a backing appear here; then record the next part, or a layer on top.</span>
       </div>
     </div>
     <div class="dock">
@@ -330,22 +333,27 @@ dialog form { text-align: right; margin-top: 12px; }
           </select></div></div>
           <div class="field"><span class="label">Level</span><div class="ctl"><input type="range" id="bvol" min="0" max="1" step="0.01" value="0.7"></div></div>
           <h3>What plays</h3>
-          <div class="toggles" id="accToggles">
-            <button class="led on" data-acc="melody">Melody</button><button class="led" data-acc="harmonics">Harmonic tones</button><button class="led on" data-acc="drone">Drone</button><button class="led on" data-acc="chords">Chords</button><button class="led on" data-acc="bass">Bass</button><button class="led on" data-acc="counter">Counter</button><button class="led on" data-acc="rhythm">Rhythm</button><button class="led" data-acc="motif">Motif</button>
-          </div>
+          <div class="field"><span class="label">Your tune</span><div class="toggles"><button class="led on" data-acc="melody" title="The melody you hummed, played by the sound chosen under Score">Melody</button></div></div>
+          <div class="field"><span class="label">Harmony</span><div class="toggles" id="accToggles">
+            <button class="led on" data-acc="chords" title="The chords under the tune">Chords</button><button class="led on" data-acc="bass" title="A bass line under the chords">Bass</button><button class="led on" data-acc="drone" title="The home note and its fifth, held under everything">Drone</button>
+          </div></div>
+          <div class="field"><span class="label">Extra lines</span><div class="toggles">
+            <button class="led on" data-acc="counter" title="A second, quieter tune that answers yours in its gaps">Counter-melody</button><button class="led" data-acc="motif" title="The backing picks up a short figure from your tune (its hook) and repeats it: as a riff, an echo, a sequence…">Hook echo</button>
+          </div></div>
+          <div class="field"><span class="label">Beat</span><div class="toggles"><button class="led on" data-acc="rhythm" title="Drums: the feel is chosen under Shape">Drums</button></div></div>
           <h3>Shape</h3>
-          <div class="field"><span class="label">Writing</span><div class="seg" data-key="writing"><button data-v="blocks">Patterns</button><button data-v="arranged" class="on">Arranged</button></div></div>
-          <div class="field"><span class="label">Energy</span><div class="seg" data-key="energy"><button data-v="flat">Flat</button><button data-v="build">Build</button><button data-v="arc" class="on">Arc</button></div></div>
-          <div class="field"><span class="label">Follows</span><div class="seg" data-key="formAware" title="Composed: chords and backing follow your phrases (cadences, repeats, answers). Bar by bar: one decision per bar"><button data-v="on" class="on">Phrases</button><button data-v="off">Bar by bar</button></div></div>
-          <div class="field"><span class="label">Harmony</span><div class="seg" data-key="harmony"><button data-v="plain" class="on">Plain</button><button data-v="modal">Modal</button><button data-v="rich">Rich</button><button data-v="dark">Dark</button><button data-v="lift">Lift</button></div></div>
-          <div class="field"><span class="label">Chord change</span><div class="seg" data-key="chordRate"><button data-v="0.5">2 bars</button><button data-v="1" class="on">Bar</button><button data-v="2">½ bar</button></div></div>
-          <div class="field"><span class="label">Texture</span><div class="seg" data-key="chordStyle"><button data-v="pad" class="on">Pad</button><button data-v="pulse">Pulse</button><button data-v="arp">Arp</button><button data-v="strum">Strum</button><button data-v="ostinato">Ostinato</button></div></div>
+          <div class="field" title="How the chords are played. Moving voices: three lines that move from chord to chord, with a melodic bass. The others repeat a pattern on each chord"><span class="label">Accompaniment</span><div class="seg" id="texSeg"><button data-v="voices">Moving voices</button><button data-v="pad">Held chords</button><button data-v="pulse">Pulse</button><button data-v="arp">Arpeggio</button><button data-v="strum">Strum</button><button data-v="ostinato">Low riff</button></div></div>
+          <div class="field" title="How much the moving parts (inner voices, bass, counter-melody) do: plain and sparse to busy and decorated"><span class="label">Busy</span><div class="ctl"><input type="range" id="busy" min="0" max="1" step="0.05" value="0.5"></div></div>
+          <div class="field" title="How the backing grows over the piece"><span class="label">Energy</span><div class="seg" data-key="energy"><button data-v="flat">Even</button><button data-v="build">Build up</button><button data-v="arc" class="on">Rise and fall</button></div></div>
+          <div class="field" title="Phrases: chords and backing follow your phrases (endings, repeats, answers). Bar by bar: one decision per bar"><span class="label">Follows</span><div class="seg" data-key="formAware"><button data-v="on" class="on">Phrases</button><button data-v="off">Bar by bar</button></div></div>
+          <div class="field" title="The colour of the chords: Plain (the key's own chords), Modal (folk and modal turns), Rich (sevenths and added notes), Dark (minor-leaning), Lift (bright, rising)"><span class="label">Chord colour</span><div class="seg" data-key="harmony"><button data-v="plain" class="on">Plain</button><button data-v="modal">Modal</button><button data-v="rich">Rich</button><button data-v="dark">Dark</button><button data-v="lift">Lift</button></div></div>
+          <div class="field" title="How often the chord changes"><span class="label">Chord change</span><div class="seg" data-key="chordRate"><button data-v="0.5">Every 2 bars</button><button data-v="1" class="on">Every bar</button><button data-v="2">Every ½ bar</button></div></div>
           <div class="field"><span class="label">Sound</span><div class="seg" data-key="sound"><button data-v="synth" class="on">Synth</button><button data-v="strings">Strings</button><button data-v="brass">Brass</button><button data-v="pluck">Pluck</button><button data-v="keys">Keys</button><button data-v="orchestra">Orchestra</button></div></div>
-          <div class="field"><span class="label">Spacing</span><div class="seg" data-key="spacing"><button data-v="close" class="on">Close</button><button data-v="open">Open</button><button data-v="wide">Wide</button></div></div>
-          <div class="field"><span class="label">Register</span><div class="seg" data-key="register"><button data-v="low">Low</button><button data-v="mid" class="on">Mid</button><button data-v="high">High</button></div></div>
-          <div class="field"><span class="label">Motif use</span><div class="seg" data-key="motifUse"><button data-v="ostinato" class="on">Ostinato</button><button data-v="echo">Echo</button><button data-v="sequence">Sequence</button><button data-v="slow">Slow</button><button data-v="mirror">Mirror</button></div></div>
-          <div class="field"><span class="label">Rhythm</span><div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="march">March</button><button data-v="drive">Drive</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div></div>
-          <div class="field"><span class="label">Meter</span><div class="ctl"><select id="meterSel" title="Meter"><option value="auto">Auto</option><option value="2">2/4</option><option value="3">3/4</option><option value="4">4/4</option></select></div></div>
+          <div class="field" id="fSpacing" title="How far apart the chord notes sit"><span class="label">Spacing</span><div class="seg" data-key="spacing"><button data-v="close" class="on">Close</button><button data-v="open">Open</button><button data-v="wide">Wide</button></div></div>
+          <div class="field" id="fRegister" title="How high the chords sit"><span class="label">Register</span><div class="seg" data-key="register"><button data-v="low">Low</button><button data-v="mid" class="on">Mid</button><button data-v="high">High</button></div></div>
+          <div class="field" id="fMotif" title="How the backing uses the hook: Riff repeats it under the tune, Echo answers it a bar later, Sequence repeats it step by step higher, Slow plays it at half speed, Mirror turns it upside down"><span class="label">Hook echo as</span><div class="seg" data-key="motifUse"><button data-v="ostinato" class="on">Riff</button><button data-v="echo">Echo</button><button data-v="sequence">Sequence</button><button data-v="slow">Slow</button><button data-v="mirror">Mirror</button></div></div>
+          <div class="field" title="The drum pattern. Mine: the groove you beatboxed or tapped (Beat mode, or the Groove view)"><span class="label">Drum feel</span><div class="seg" data-key="feel"><button data-v="backbeat" class="on">Backbeat</button><button data-v="march">March</button><button data-v="drive">Drive</button><button data-v="lilt">Lilt</button><button data-v="sparse">Sparse</button><button data-v="none">None</button><button data-v="mine">Mine</button></div></div>
+          <div class="field"><span class="label">Meter</span><div class="ctl"><select id="meterSel" title="Beats in a bar"><option value="auto">Auto</option><option value="2">2/4</option><option value="3">3/4</option><option value="4">4/4</option></select></div></div>
         </div>
       </div>
 
@@ -405,6 +413,7 @@ dialog form { text-align: right; margin-top: 12px; }
         <h3>Partials</h3>
         <div class="field"><span class="label">Show</span><div class="seg" id="partials" data-key="partials"><button data-v="off">Off</button><button data-v="on" class="on">On</button></div></div>
         <div class="field"><span class="label">Range</span><div class="ctl"><input type="range" id="prange" min="6" max="48" step="1" value="24"><output id="prangeV" class="val"></output></div></div>
+        <div class="field" title="Play the harmonics you sang as soft tones in Score playback"><span class="label">In playback</span><div class="ctl"><button class="small led" data-acc="harmonics">Harmonic tones</button></div></div>
         <div class="field" title="Extra input gate (left: automatic)"><span class="label">Input gate</span><div class="ctl"><input type="range" id="gate" min="0" max="0.08" step="0.001" value="0"></div></div>
         <h3>Preview</h3>
         <div class="field"><span class="label">Play take</span><div class="ctl"><button class="small" id="play" disabled>▶ Play</button><div class="seg" id="playmode" data-key="playMode"><button data-v="voice" class="on">Voice</button><button data-v="notes">Notes</button><button data-v="both">Both</button><button data-v="partials">Partials</button></div></div></div>
